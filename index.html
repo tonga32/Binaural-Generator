@@ -109,7 +109,7 @@
             <!-- Overlay Indicators -->
             <div class="absolute top-3 left-3 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 font-mono text-[11px] text-slate-300 flex items-center gap-2">
               <span class="w-2 h-2 rounded-full accent-bg animate-pulse"></span>
-              <span>Modo (m:<b id="mValDisplay">3</b>, n:<b id="nValDisplay">3</b>)</span>
+              <span>Modo Dinámico (m:<b id="mValDisplay">3.2</b>, n:<b id="nValDisplay">4.1</b>)</span>
             </div>
 
             <div class="absolute bottom-3 right-3 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 font-mono text-[11px] text-slate-300">
@@ -118,7 +118,7 @@
           </div>
 
         </div>
-        <p class="text-[11px] text-slate-400 mt-2 text-center">Simulación física real: La arena vibra alejándose de los antinodos y se deposita en las líneas nodales estáticas.</p>
+        <p class="text-[11px] text-slate-400 mt-2 text-center">Simulación reactiva: El patrón se reconfigura dinámicamente según la Frecuencia Portadora y vibra al ritmo del Beat Binaural.</p>
       </div>
 
       <!-- Right Column: Audio & Chladni Controls -->
@@ -166,59 +166,50 @@
             </div>
 
             <div class="text-right font-mono text-xs text-slate-400 bg-black/40 px-3 py-2 rounded-xl border border-white/5">
-              <div>L: <span id="freqLDisplay" class="text-slate-200 font-bold">200 Hz</span></div>
-              <div>R: <span id="freqRDisplay" class="text-slate-200 font-bold">210 Hz</span></div>
+              <div>L: <span id="freqLDisplay" class="text-slate-200 font-bold">200.0 Hz</span></div>
+              <div>R: <span id="freqRDisplay" class="text-slate-200 font-bold">210.0 Hz</span></div>
             </div>
           </div>
 
-          <!-- Cymatic Pattern Presets (Modes m, n & Chladni Frequencies) -->
+          <!-- Cymatic Resonance Presets (Auto Tuning Audio + Physical Plate) -->
           <div class="space-y-1.5 pt-2 border-t border-white/10">
             <label class="text-xs font-semibold text-slate-300 flex items-center justify-between">
-              <span>Patrones Cimáticos de Resonancia</span>
-              <span class="text-[10px] text-slate-400 font-normal">Frecuencias Físicas de Placa</span>
+              <span>Modos Cimáticos de Resonancia Harmoniosa</span>
+              <span class="text-[10px] text-slate-400 font-normal">Sincronizado con Audio</span>
             </label>
             <div class="grid grid-cols-4 gap-2">
-              <button onclick="setChladniPreset(2, 3, 220)" class="px-2 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-mono text-center">m=2, n=3<br><span class="text-[10px] text-slate-400">220 Hz</span></button>
-              <button onclick="setChladniPreset(3, 3, 432)" class="px-2 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-mono text-center">m=3, n=3<br><span class="text-[10px] text-slate-400">432 Hz</span></button>
-              <button onclick="setChladniPreset(5, 4, 1024)" class="px-2 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-mono text-center">m=5, n=4<br><span class="text-[10px] text-slate-400">1024 Hz</span></button>
-              <button onclick="setChladniPreset(7, 6, 2041)" class="px-2 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-mono text-center">m=7, n=6<br><span class="text-[10px] text-slate-400">2041 Hz</span></button>
+              <button onclick="setAudioCarrier(180)" class="px-2 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-mono text-center">Bajo<br><span class="text-[10px] text-slate-400">180 Hz</span></button>
+              <button onclick="setAudioCarrier(320)" class="px-2 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-mono text-center">Medio<br><span class="text-[10px] text-slate-400">320 Hz</span></button>
+              <button onclick="setAudioCarrier(432)" class="px-2 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-mono text-center">Geométrico<br><span class="text-[10px] text-slate-400">432 Hz</span></button>
+              <button onclick="setAudioCarrier(520)" class="px-2 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-mono text-center">Alto<br><span class="text-[10px] text-slate-400">520 Hz</span></button>
             </div>
           </div>
 
           <!-- Sliders -->
           <div class="space-y-3 pt-2 border-t border-white/10">
             
-            <!-- Chladni m Parameter -->
+            <!-- Carrier Frequency Control -->
             <div class="space-y-1">
               <div class="flex justify-between text-xs">
-                <span class="text-slate-300">Modo Cimático M (Complejidad X)</span>
-                <span id="mSliderVal" class="font-mono accent-text font-bold">3</span>
+                <span class="text-slate-300">Frecuencia Portadora (Reactividad Cimática)</span>
+                <span id="carrierSliderVal" class="font-mono accent-text font-bold">200 Hz</span>
               </div>
-              <input type="range" id="mSlider" min="1" max="10" step="1" value="3" oninput="updateM(this.value)">
+              <input type="range" id="carrierSlider" min="100" max="600" step="1" value="200" oninput="updateCarrierFreq(this.value)">
             </div>
 
-            <!-- Chladni n Parameter -->
+            <!-- Binaural Beat Frequency Slider -->
             <div class="space-y-1">
               <div class="flex justify-between text-xs">
-                <span class="text-slate-300">Modo Cimático N (Complejidad Y)</span>
-                <span id="nSliderVal" class="font-mono accent-text font-bold">3</span>
+                <span class="text-slate-300">Frecuencia Binaural / Pulsación (Hz)</span>
+                <span id="binauralSliderVal" class="font-mono text-slate-200 font-bold">10.0 Hz</span>
               </div>
-              <input type="range" id="nSlider" min="1" max="10" step="1" value="3" oninput="updateN(this.value)">
-            </div>
-
-            <!-- Audio Carrier Freq -->
-            <div class="space-y-1">
-              <div class="flex justify-between text-xs">
-                <span class="text-slate-300">Frecuencia Portadora (Hz)</span>
-                <span id="carrierSliderVal" class="font-mono text-slate-200 font-bold">200 Hz</span>
-              </div>
-              <input type="range" id="carrierSlider" min="100" max="2200" step="1" value="200" oninput="updateCarrierFreq(this.value)">
+              <input type="range" id="binauralSlider" min="0.5" max="50" step="0.5" value="10" oninput="updateBinauralFreq(this.value)">
             </div>
 
             <!-- Volume Slider -->
             <div class="space-y-1">
               <div class="flex justify-between text-xs">
-                <span class="text-slate-300">Volumen</span>
+                <span class="text-slate-300">Volumen / Fuerza de Vibración</span>
                 <span id="volumeSliderVal" class="font-mono text-slate-200 font-bold">50%</span>
               </div>
               <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="0.5" oninput="updateVolume(this.value)">
@@ -234,7 +225,7 @@
 
     <!-- Footer -->
     <footer class="w-full max-w-6xl mx-auto px-4 py-3 text-center text-xs text-slate-500 border-t border-white/5">
-      <p>Cymatics & Binaural Mind Simulation &copy; Basado en la ecuación nodal de Ernst Chladni.</p>
+      <p>Cymatics & Binaural Mind Simulation &copy; Basado en la ecuación de onda en placas cuadradas de Ernst Chladni.</p>
     </footer>
 
   </div>
@@ -252,7 +243,7 @@
     let currentPreset = 'alpha';
     let isPlaying = false;
 
-    // Frecuencias y parámetros audio
+    // Frecuencias y parámetros de audio
     let carrierFreq = 200;
     let binauralFreq = 10.0;
     let volume = 0.5;
@@ -263,9 +254,9 @@
     let panLeft = null, panRight = null;
     let masterGain = null;
 
-    // --- Parámetros Cimáticos (Chladni) ---
+    // Parámetros Cimáticos calculados dinámicamente desde el audio
     let chladniM = 3;
-    let chladniN = 3;
+    let chladniN = 4;
     let aParam = 1.0;
     let bParam = 1.0;
 
@@ -280,7 +271,7 @@
       particles.length = 0;
       for (let i = 0; i < NUM_PARTICLES; i++) {
         particles.push({
-          x: Math.random() * 2 - 1, // Normalizado [-1, 1]
+          x: Math.random() * 2 - 1, // Coordenadas normalizadas [-1, 1]
           y: Math.random() * 2 - 1,
           vx: 0,
           vy: 0
@@ -290,14 +281,24 @@
 
     function scatterSand() {
       for (let i = 0; i < particles.length; i++) {
-        particles[i].x += (Math.random() - 0.5) * 0.4;
-        particles[i].y += (Math.random() - 0.5) * 0.4;
+        particles[i].x += (Math.random() - 0.5) * 0.5;
+        particles[i].y += (Math.random() - 0.5) * 0.5;
         particles[i].x = Math.max(-0.95, Math.min(0.95, particles[i].x));
         particles[i].y = Math.max(-0.95, Math.min(0.95, particles[i].y));
       }
     }
 
-    // Ecuación de la Placa de Chladni: N(x,y) = a*sin(n*pi*x)*sin(m*pi*y) + b*sin(m*pi*x)*sin(n*pi*y)
+    // Calcula los parámetros modales m y n en tiempo real a partir de la Frecuencia Portadora de Audio
+    function computeChladniParamsFromAudio() {
+      // Mapeo continuo de la Frecuencia Portadora (100 - 600 Hz) a modos modales m y n
+      chladniM = 1.5 + (carrierFreq / 85.0);
+      chladniN = 2.0 + (carrierFreq / 110.0);
+
+      document.getElementById('mValDisplay').innerText = chladniM.toFixed(1);
+      document.getElementById('nValDisplay').innerText = chladniN.toFixed(1);
+    }
+
+    // Ecuación nodal de la Placa de Chladni: N(x,y) = a*sin(n*pi*x)*sin(m*pi*y) + b*sin(m*pi*x)*sin(n*pi*y)
     function chladniValue(x, y, m, n) {
       const pi = Math.PI;
       const nx = n * pi * x * 0.5;
@@ -308,30 +309,42 @@
       return aParam * Math.sin(nx) * Math.sin(my) + bParam * Math.sin(mx) * Math.sin(ny);
     }
 
-    function updateParticles() {
-      const step = 0.004;
-      const intensity = isPlaying ? (0.015 + (volume * 0.01)) : 0.005;
+    function updateParticles(timestamp) {
+      computeChladniParamsFromAudio();
+
+      const step = 0.005;
+
+      // Modulación de pulsación auditiva basada exactamente en la frecuencia binaural (Hz)
+      const beatModulation = isPlaying 
+        ? 0.5 + 0.5 * Math.sin((timestamp / 1000) * (binauralFreq * Math.PI * 2))
+        : 0.1;
+
+      // La energía de agitación se vincula al volumen y a la pulsación binaural
+      const vibrationIntensity = isPlaying 
+        ? (0.008 + (volume * 0.025)) * (0.4 + 0.6 * beatModulation)
+        : 0.0008;
 
       for (let i = 0; i < particles.length; i++) {
         const p = particles[i];
 
-        // Calcular gradiente de vibración (fuerza alejándose del antinodo)
+        // Calcular el gradiente local del módulo de vibración
         const val = chladniValue(p.x, p.y, chladniM, chladniN);
         const valX = chladniValue(p.x + step, p.y, chladniM, chladniN);
         const valY = chladniValue(p.x, p.y + step, chladniM, chladniN);
 
-        // Derivada empírica del valor absoluto de la vibración
+        // La arena migra desde puntos de alta aceleración (antinodos) hacia las líneas nodales (vibración = 0)
         const gradX = (Math.abs(valX) - Math.abs(val)) / step;
         const gradY = (Math.abs(valY) - Math.abs(val)) / step;
 
-        // La arena se desplaza hacia las líneas nodales (donde la vibración es 0)
-        p.vx = -gradX * intensity + (Math.random() - 0.5) * 0.001;
-        p.vy = -gradY * intensity + (Math.random() - 0.5) * 0.001;
+        const jitter = isPlaying ? (Math.random() - 0.5) * vibrationIntensity * 0.4 : 0;
+
+        p.vx = -gradX * vibrationIntensity + jitter;
+        p.vy = -gradY * vibrationIntensity + jitter;
 
         p.x += p.vx;
         p.y += p.vy;
 
-        // Rebote en bordes de la placa
+        // Limite físico de la placa metálica
         if (p.x < -0.95 || p.x > 0.95) p.x = Math.max(-0.95, Math.min(0.95, p.x));
         if (p.y < -0.95 || p.y > 0.95) p.y = Math.max(-0.95, Math.min(0.95, p.y));
       }
@@ -341,16 +354,16 @@
       const w = canvas.width;
       const h = canvas.height;
 
-      // Fondo metálico oscuro
+      // Placa metálica oscura
       ctx.fillStyle = '#020617';
       ctx.fillRect(0, 0, w, h);
 
-      // Cuadrícula tenue metálica
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+      // Borde de resonancia de la placa
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
       ctx.lineWidth = 1;
       ctx.strokeRect(w * 0.02, h * 0.02, w * 0.96, h * 0.96);
 
-      // Color de la arena basado en el preset
+      // Color de las partículas de arena adaptado al tema actual
       const colorHex = PRESETS[currentPreset].colorHex;
       ctx.fillStyle = colorHex;
       ctx.globalAlpha = 0.85;
@@ -363,14 +376,14 @@
         const px = halfW + p.x * (halfW * 0.92);
         const py = halfH + p.y * (halfH * 0.92);
 
-        ctx.fillRect(px, py, 1.2, 1.2);
+        ctx.fillRect(px, py, 1.25, 1.25);
       }
 
       ctx.globalAlpha = 1.0;
     }
 
-    function animLoop() {
-      updateParticles();
+    function animLoop(timestamp) {
+      updateParticles(timestamp);
       renderChladni();
       requestAnimationFrame(animLoop);
     }
@@ -459,7 +472,21 @@
 
     function updateCarrierFreq(val) {
       carrierFreq = parseFloat(val);
-      document.getElementById('carrierSliderVal').innerText = `${carrierFreq} Hz`;
+      document.getElementById('carrierSliderVal').innerText = `${Math.round(carrierFreq)} Hz`;
+      applyAudioFrequencies();
+    }
+
+    function setAudioCarrier(val) {
+      carrierFreq = val;
+      document.getElementById('carrierSlider').value = val;
+      document.getElementById('carrierSliderVal').innerText = `${val} Hz`;
+      scatterSand();
+      applyAudioFrequencies();
+    }
+
+    function updateBinauralFreq(val) {
+      binauralFreq = parseFloat(val);
+      document.getElementById('binauralSliderVal').innerText = `${binauralFreq.toFixed(1)} Hz`;
       applyAudioFrequencies();
     }
 
@@ -471,35 +498,6 @@
       }
     }
 
-    function updateM(val) {
-      chladniM = parseInt(val);
-      document.getElementById('mValDisplay').innerText = chladniM;
-      document.getElementById('mSliderVal').innerText = chladniM;
-      scatterSand();
-    }
-
-    function updateN(val) {
-      chladniN = parseInt(val);
-      document.getElementById('nValDisplay').innerText = chladniN;
-      document.getElementById('nSliderVal').innerText = chladniN;
-      scatterSand();
-    }
-
-    function setChladniPreset(m, n, freq) {
-      chladniM = m;
-      chladniN = n;
-      document.getElementById('mSlider').value = m;
-      document.getElementById('nSlider').value = n;
-      document.getElementById('mValDisplay').innerText = m;
-      document.getElementById('nValDisplay').innerText = n;
-      document.getElementById('mSliderVal').innerText = m;
-      document.getElementById('nSliderVal').innerText = n;
-
-      updateCarrierFreq(freq);
-      document.getElementById('carrierSlider').value = freq;
-      scatterSand();
-    }
-
     function selectPreset(key) {
       const preset = PRESETS[key];
       if (!preset) return;
@@ -507,6 +505,8 @@
       currentPreset = key;
       binauralFreq = preset.defaultFreq;
       document.getElementById('waveTypeName').innerText = preset.subtitle;
+      document.getElementById('binauralSlider').value = binauralFreq;
+      document.getElementById('binauralSliderVal').innerText = `${binauralFreq.toFixed(1)} Hz`;
 
       const body = document.body;
       Object.values(PRESETS).forEach(p => body.classList.remove(p.themeClass));
@@ -517,6 +517,7 @@
       if (activeBtn) activeBtn.classList.add('ring-2', 'ring-white');
 
       applyAudioFrequencies();
+      scatterSand();
     }
 
     function updatePlayButtonUI() {
@@ -547,7 +548,7 @@
       resizeCanvas();
       initParticles();
       selectPreset('alpha');
-      animLoop();
+      requestAnimationFrame(animLoop);
     };
   </script>
 
