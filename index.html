@@ -1,900 +1,681 @@
 <!DOCTYPE html>
-<html lang="es" class="h-full bg-slate-950 text-slate-100">
+<html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Binaural Mind & Cymatics Studio</title>
-  
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  
-  <!-- Google Fonts: Inter & Outfit -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
-  
-  <!-- Lucide Icons -->
-  <script src="https://unpkg.com/lucide@latest"></script>
-
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: {
-            sans: ['Inter', 'sans-serif'],
-            display: ['Outfit', 'sans-serif'],
-          }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Binaural & Cymatic Studio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            background-color: #0b0f19;
+            color: #f3f4f6;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            overflow-x: hidden;
         }
-      }
-    }
-  </script>
-
-  <style>
-    input[type=range] {
-      -webkit-appearance: none;
-      background: transparent;
-    }
-    input[type=range]::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      height: 18px;
-      width: 18px;
-      border-radius: 50%;
-      background: #ffffff;
-      cursor: pointer;
-      box-shadow: 0 0 10px rgba(255, 255, 255, 0.6);
-      margin-top: -5px;
-      transition: all 0.15s ease;
-    }
-    input[type=range]::-webkit-slider-thumb:hover {
-      transform: scale(1.2);
-    }
-    input[type=range]::-webkit-slider-runnable-track {
-      width: 100%;
-      height: 8px;
-      cursor: pointer;
-      background: rgba(255, 255, 255, 0.15);
-      border-radius: 4px;
-    }
-
-    .theme-transition {
-      transition: background 1s ease-in-out, border-color 0.8s ease;
-    }
-
-    .theme-delta { background: radial-gradient(circle at 50% 30%, #1e1b4b 0%, #0f172a 60%, #020617 100%); --accent-color: #818cf8; }
-    .theme-theta { background: radial-gradient(circle at 50% 30%, #064e3b 0%, #022c22 60%, #020617 100%); --accent-color: #34d399; }
-    .theme-alpha { background: radial-gradient(circle at 50% 30%, #065f46 0%, #14532d 60%, #020617 100%); --accent-color: #6ee7b7; }
-    .theme-beta { background: radial-gradient(circle at 50% 30%, #7c2d12 0%, #451a03 60%, #020617 100%); --accent-color: #fb923c; }
-    .theme-gamma { background: radial-gradient(circle at 50% 30%, #701a75 0%, #4c1d95 60%, #020617 100%); --accent-color: #f472b6; }
-
-    .accent-text { color: var(--accent-color); }
-    .accent-bg { background-color: var(--accent-color); }
-  </style>
+        .preset-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .preset-card:hover {
+            transform: translateY(-2px);
+        }
+        input[type=range] {
+            accent-color: #6366f1;
+        }
+        .glass {
+            background: rgba(17, 24, 39, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        canvas {
+            touch-action: none;
+        }
+    </style>
 </head>
+<body class="min-h-screen flex flex-col relative transition-colors duration-1000" id="app-body">
 
-<body class="h-full flex flex-col justify-between theme-transition theme-alpha text-slate-100 font-sans antialiased relative overflow-x-hidden min-h-screen">
+    <!-- Canvas de Fondo (Simulación Cimática de Chladni) -->
+    <canvas id="cymaticsCanvas" class="fixed inset-0 w-full h-full z-0 pointer-events-none opacity-80"></canvas>
 
-  <div class="relative z-10 flex flex-col min-h-screen">
-    
-    <!-- Header -->
-    <header class="w-full max-w-6xl mx-auto px-4 pt-4 pb-2 flex justify-between items-center">
-      <div class="flex items-center gap-3">
-        <div class="p-2.5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/10 shadow-inner">
-          <i data-lucide="grid" class="w-6 h-6 accent-text"></i>
-        </div>
-        <div>
-          <h1 class="font-display font-bold text-xl tracking-tight">Cymatics & Binaural Lab</h1>
-          <p class="text-xs text-slate-400 font-medium">Placa de Chladni & Ondas Binaurales</p>
-        </div>
-      </div>
-
-      <div class="flex items-center gap-3">
-        <button onclick="scatterSand()" class="px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 text-xs font-medium flex items-center gap-1.5 transition">
-          <i data-lucide="sparkles" class="w-3.5 h-3.5 accent-text"></i>
-          <span>Agitar Arena</span>
-        </button>
-
-        <!-- Botón de Grabación WAV -->
-        <button id="recordBtn" onclick="toggleRecording()" class="px-3 py-1.5 rounded-full bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 text-red-300 text-xs font-medium flex items-center gap-1.5 transition">
-          <span id="recordDot" class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
-          <span id="recordBtnText">Grabar WAV</span>
-          <span id="recordTimer" class="font-mono text-[10px] hidden bg-red-950/80 px-1.5 py-0.5 rounded text-red-200">00:00</span>
-        </button>
-      </div>
-    </header>
-
-    <!-- Main Content -->
-    <main class="w-full max-w-6xl mx-auto px-4 py-4 flex-1 flex flex-col lg:flex-row gap-6 items-center lg:items-start justify-center">
-
-      <!-- Left Column: Chladni Plate Canvas Visualizer -->
-      <div class="w-full lg:w-1/2 flex flex-col items-center justify-center">
-        <div class="relative w-full max-w-[460px] aspect-square rounded-3xl p-3 bg-slate-900/80 border border-white/15 shadow-2xl backdrop-blur-xl flex flex-col items-center justify-center">
-          
-          <!-- Chladni Metal Plate Canvas -->
-          <div class="relative w-full h-full rounded-2xl overflow-hidden bg-slate-950 border border-white/10 flex items-center justify-center shadow-inner">
-            <canvas id="chladniCanvas" class="w-full h-full block cursor-crosshair"></canvas>
-
-            <!-- Overlay Indicators -->
-            <div class="absolute top-3 left-3 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 font-mono text-[11px] text-slate-300 flex items-center gap-2">
-              <span class="w-2 h-2 rounded-full accent-bg animate-pulse"></span>
-              <span id="modeStatusDisplay">Modo: Binaural (m:3.2, n:4.1)</span>
-            </div>
-
-            <div class="absolute bottom-3 right-3 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 font-mono text-[11px] text-slate-300">
-              <span id="particleCountDisplay">22,000</span> Partículas
-            </div>
-          </div>
-
-        </div>
-        <p class="text-[11px] text-slate-400 mt-2 text-center">Simulación reactiva: El patrón se ajusta dinámicamente según el modo acústico, la frecuencia portadora y la pulsación.</p>
-      </div>
-
-      <!-- Right Column: Audio & Chladni Controls -->
-      <div class="w-full lg:w-1/2 flex flex-col gap-4">
-
-        <!-- Acoustic Mode Selector -->
-        <section class="space-y-1.5">
-          <label class="text-xs font-semibold text-slate-300">Modo de Generación Acústica</label>
-          <div class="grid grid-cols-5 gap-1.5 p-1 bg-black/40 rounded-xl border border-white/10">
-            <button onclick="setAudioMode('binaural')" id="mode-binaural" class="mode-btn px-2 py-1.5 rounded-lg text-xs font-medium transition text-center bg-white/20 text-white shadow">Binaural</button>
-            <button onclick="setAudioMode('monaural')" id="mode-monaural" class="mode-btn px-2 py-1.5 rounded-lg text-xs font-medium transition text-center text-slate-400 hover:text-white">Monoaural</button>
-            <button onclick="setAudioMode('isochronic')" id="mode-isochronic" class="mode-btn px-2 py-1.5 rounded-lg text-xs font-medium transition text-center text-slate-400 hover:text-white">Isocrónico</button>
-            <button onclick="setAudioMode('white_noise')" id="mode-white_noise" class="mode-btn px-2 py-1.5 rounded-lg text-xs font-medium transition text-center text-slate-400 hover:text-white">R. Blanco</button>
-            <button onclick="setAudioMode('pink_noise')" id="mode-pink_noise" class="mode-btn px-2 py-1.5 rounded-lg text-xs font-medium transition text-center text-slate-400 hover:text-white">R. Rosa</button>
-          </div>
-        </section>
-
-        <!-- Brainwave / Cymatic Presets -->
-        <section class="grid grid-cols-5 gap-2">
-          <button onclick="selectPreset('delta')" id="btn-delta" class="preset-card p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-center transition">
-            <span class="block font-display font-bold text-sm">Delta</span>
-            <span class="block text-[10px] text-indigo-300 font-mono">2.5 Hz</span>
-          </button>
-          <button onclick="selectPreset('theta')" id="btn-theta" class="preset-card p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-center transition">
-            <span class="block font-display font-bold text-sm">Theta</span>
-            <span class="block text-[10px] text-emerald-300 font-mono">6.0 Hz</span>
-          </button>
-          <button onclick="selectPreset('alpha')" id="btn-alpha" class="preset-card p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-center transition ring-2 ring-white">
-            <span class="block font-display font-bold text-sm">Alpha</span>
-            <span class="block text-[10px] text-teal-300 font-mono">10.0 Hz</span>
-          </button>
-          <button onclick="selectPreset('beta')" id="btn-beta" class="preset-card p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-center transition">
-            <span class="block font-display font-bold text-sm">Beta</span>
-            <span class="block text-[10px] text-amber-300 font-mono">20.0 Hz</span>
-          </button>
-          <button onclick="selectPreset('gamma')" id="btn-gamma" class="preset-card p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-center transition">
-            <span class="block font-display font-bold text-sm">Gamma</span>
-            <span class="block text-[10px] text-pink-300 font-mono">40.0 Hz</span>
-          </button>
-        </section>
-
-        <!-- Main Audio Control Panel -->
-        <div class="rounded-2xl bg-slate-900/70 border border-white/10 p-5 backdrop-blur-xl space-y-4">
-          
-          <div class="flex items-center justify-between gap-4">
-            <div class="flex items-center gap-4">
-              <button id="playBtn" onclick="togglePlay()" class="w-14 h-14 rounded-full bg-white text-slate-950 flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition group shrink-0">
-                <i id="playIcon" data-lucide="play" class="w-6 h-6 fill-current text-slate-950 translate-x-0.5"></i>
-              </button>
-              <div>
-                <div class="flex items-baseline gap-1.5">
-                  <span id="binauralFreqDisplay" class="font-display font-bold text-3xl">10.0</span>
-                  <span class="text-sm font-mono accent-text font-bold">Hz</span>
+    <div class="relative z-10 flex flex-col min-h-screen">
+        <!-- Header -->
+        <header class="glass sticky top-0 z-20 px-6 py-4 flex items-center justify-between shadow-lg">
+            <div class="flex items-center gap-3">
+                <div class="p-2 rounded-lg bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
+                    <i data-lucide="waves" class="w-6 h-6"></i>
                 </div>
-                <p id="waveTypeName" class="text-xs text-slate-400">Onda Alpha (Relajación)</p>
-              </div>
+                <div>
+                    <h1 class="font-bold text-xl tracking-tight text-white">Binaural & Cymatic Studio</h1>
+                    <p class="text-xs text-gray-400">Generador Acústico & Visualizador de Chladni</p>
+                </div>
             </div>
 
-            <div class="text-right font-mono text-xs text-slate-400 bg-black/40 px-3 py-2 rounded-xl border border-white/5">
-              <div id="channelLBox">L: <span id="freqLDisplay" class="text-slate-200 font-bold">200.0 Hz</span></div>
-              <div id="channelRBox">R: <span id="freqRDisplay" class="text-slate-200 font-bold">210.0 Hz</span></div>
+            <!-- Botones de Control de Reproducción y Grabación -->
+            <div class="flex items-center gap-3">
+                <button id="recBtn" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 font-medium transition border border-gray-700 text-sm">
+                    <span id="recDot" class="w-2.5 h-2.5 rounded-full bg-red-500 hidden"></span>
+                    <i id="recIcon" data-lucide="circle-dot" class="w-4 h-4 text-red-400"></i>
+                    <span id="recText">REC</span>
+                    <span id="recTimer" class="font-mono text-xs hidden ml-1 text-red-400">00:00</span>
+                </button>
+
+                <button id="playBtn" class="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold shadow-lg shadow-indigo-600/30 transition text-sm">
+                    <i id="playIcon" data-lucide="play" class="w-4 h-4 fill-current"></i>
+                    <span id="playText">Iniciar Audio</span>
+                </button>
             </div>
-          </div>
+        </header>
 
-          <!-- Cymatic Resonance Presets -->
-          <div id="resonanceSection" class="space-y-1.5 pt-2 border-t border-white/10">
-            <label class="text-xs font-semibold text-slate-300 flex items-center justify-between">
-              <span>Modos Cimáticos de Resonancia Harmoniosa</span>
-              <span class="text-[10px] text-slate-400 font-normal">Sincronizado con Audio</span>
-            </label>
-            <div class="grid grid-cols-4 gap-2">
-              <button onclick="setAudioCarrier(180)" class="px-2 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-mono text-center">Bajo<br><span class="text-[10px] text-slate-400">180 Hz</span></button>
-              <button onclick="setAudioCarrier(320)" class="px-2 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-mono text-center">Medio<br><span class="text-[10px] text-slate-400">320 Hz</span></button>
-              <button onclick="setAudioCarrier(432)" class="px-2 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-mono text-center">Geométrico<br><span class="text-[10px] text-slate-400">432 Hz</span></button>
-              <button onclick="setAudioCarrier(520)" class="px-2 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-mono text-center">Alto<br><span class="text-[10px] text-slate-400">520 Hz</span></button>
-            </div>
-          </div>
+        <!-- Main Content -->
+        <main class="flex-1 max-w-7xl w-full mx-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-          <!-- Sliders -->
-          <div class="space-y-3 pt-2 border-t border-white/10">
-            
-            <!-- Carrier Frequency / Noise Cutoff Control -->
-            <div id="carrierContainer" class="space-y-1">
-              <div class="flex justify-between text-xs">
-                <span id="carrierLabel" class="text-slate-300">Frecuencia Portadora (Reactividad Cimática)</span>
-                <span id="carrierSliderVal" class="font-mono accent-text font-bold">200 Hz</span>
-              </div>
-              <input type="range" id="carrierSlider" min="100" max="600" step="1" value="200" oninput="updateCarrierFreq(this.value)">
-            </div>
+            <!-- Panel de Control Izquierdo (4 Cols) -->
+            <section class="lg:col-span-5 flex flex-col gap-6">
 
-            <!-- Binaural / Isochronic Beat Frequency Slider -->
-            <div id="binauralContainer" class="space-y-1">
-              <div class="flex justify-between text-xs">
-                <span id="binauralLabel" class="text-slate-300">Frecuencia de Pulsación (Hz)</span>
-                <span id="binauralSliderVal" class="font-mono text-slate-200 font-bold">10.0 Hz</span>
-              </div>
-              <input type="range" id="binauralSlider" min="0.5" max="50" step="0.5" value="10" oninput="updateBinauralFreq(this.value)">
-            </div>
+                <!-- Alerta Auriculares -->
+                <div class="glass rounded-2xl p-4 flex items-start gap-3 border-amber-500/20 bg-amber-500/5">
+                    <i data-lucide="headphones" class="w-5 h-5 text-amber-400 shrink-0 mt-0.5"></i>
+                    <div class="text-xs text-amber-200/90 leading-relaxed">
+                        <strong>Tip de Escucha:</strong> Para los tonos <span class="text-amber-300">Binaurales</span> es imprescindible utilizar auriculares. Para tonos <span class="text-amber-300">Monoaurales</span>, <span class="text-amber-300">Isocrónicos</span> y <span class="text-amber-300">Ondas Puras</span> podés usar parlantes.
+                    </div>
+                </div>
 
-            <!-- Volume Slider -->
-            <div class="space-y-1">
-              <div class="flex justify-between text-xs">
-                <span class="text-slate-300">Volumen / Fuerza de Vibración</span>
-                <span id="volumeSliderVal" class="font-mono text-slate-200 font-bold">50%</span>
-              </div>
-              <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="0.5" oninput="updateVolume(this.value)">
-            </div>
+                <!-- Selector de Tipo de Audio -->
+                <div class="glass rounded-2xl p-5 flex flex-col gap-3">
+                    <label class="text-xs font-semibold uppercase tracking-wider text-gray-400 flex items-center gap-2">
+                        <i data-lucide="sliders-horizontal" class="w-4 h-4"></i>
+                        Modo de Audio
+                    </label>
+                    <div class="grid grid-cols-3 gap-2" id="audioTypeGroup">
+                        <button data-type="binaural" class="audio-type-btn px-3 py-2 text-xs rounded-lg font-medium border bg-indigo-600 border-indigo-500 text-white shadow">Binaural</button>
+                        <button data-type="monaural" class="audio-type-btn px-3 py-2 text-xs rounded-lg font-medium border bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700">Monoaural</button>
+                        <button data-type="isochronic" class="audio-type-btn px-3 py-2 text-xs rounded-lg font-medium border bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700">Isocrónico</button>
+                        <button data-type="pure" class="audio-type-btn px-3 py-2 text-xs rounded-lg font-medium border bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700">Onda Pura</button>
+                        <button data-type="pink" class="audio-type-btn px-3 py-2 text-xs rounded-lg font-medium border bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700">Ruido Rosa</button>
+                        <button data-type="white" class="audio-type-btn px-3 py-2 text-xs rounded-lg font-medium border bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700">Ruido Blanco</button>
+                    </div>
+                </div>
 
-          </div>
+                <!-- Presets de Frecuencia Cerebrales -->
+                <div class="glass rounded-2xl p-5 flex flex-col gap-3">
+                    <label class="text-xs font-semibold uppercase tracking-wider text-gray-400 flex items-center gap-2">
+                        <i data-lucide="activity" class="w-4 h-4"></i>
+                        Presets Fisiológicos
+                    </label>
+                    <div class="grid grid-cols-1 gap-2.5" id="presetsGroup">
+                        <button data-beat="2.5" data-color="#312e81" data-name="Delta" class="preset-card p-3 rounded-xl border border-indigo-900/50 bg-indigo-950/30 flex items-center justify-between text-left hover:border-indigo-500">
+                            <div>
+                                <div class="font-bold text-sm text-indigo-300">Delta (0.5 - 4 Hz)</div>
+                                <div class="text-xs text-gray-400">Sueño profundo y regeneración celular</div>
+                            </div>
+                            <span class="text-xs font-mono px-2 py-1 bg-indigo-900/60 rounded text-indigo-200">2.5 Hz</span>
+                        </button>
+                        <button data-beat="6.0" data-color="#064e3b" data-name="Theta" class="preset-card p-3 rounded-xl border border-emerald-900/50 bg-emerald-950/30 flex items-center justify-between text-left hover:border-emerald-500">
+                            <div>
+                                <div class="font-bold text-sm text-emerald-300">Theta (4 - 8 Hz)</div>
+                                <div class="text-xs text-gray-400">Meditación, fase REM y creatividad</div>
+                            </div>
+                            <span class="text-xs font-mono px-2 py-1 bg-emerald-900/60 rounded text-emerald-200">6.0 Hz</span>
+                        </button>
+                        <button data-beat="10.0" data-color="#134e4a" data-name="Alpha" class="preset-card p-3 rounded-xl border border-teal-900/50 bg-teal-950/30 flex items-center justify-between text-left hover:border-teal-500">
+                            <div>
+                                <div class="font-bold text-sm text-teal-300">Alpha (8 - 13 Hz)</div>
+                                <div class="text-xs text-gray-400">Relajación consciente y foco ligero</div>
+                            </div>
+                            <span class="text-xs font-mono px-2 py-1 bg-teal-900/60 rounded text-teal-200">10.0 Hz</span>
+                        </button>
+                        <button data-beat="18.0" data-color="#78350f" data-name="Beta" class="preset-card p-3 rounded-xl border border-amber-900/50 bg-amber-950/30 flex items-center justify-between text-left hover:border-amber-500">
+                            <div>
+                                <div class="font-bold text-sm text-amber-300">Beta (13 - 30 Hz)</div>
+                                <div class="text-xs text-gray-400">Concentración activa y resolución de problemas</div>
+                            </div>
+                            <span class="text-xs font-mono px-2 py-1 bg-amber-900/60 rounded text-amber-200">18.0 Hz</span>
+                        </button>
+                        <button data-beat="40.0" data-color="#701a75" data-name="Gamma" class="preset-card p-3 rounded-xl border border-fuchsia-900/50 bg-fuchsia-950/30 flex items-center justify-between text-left hover:border-fuchsia-500">
+                            <div>
+                                <div class="font-bold text-sm text-fuchsia-300">Gamma (30 - 50 Hz)</div>
+                                <div class="text-xs text-gray-400">Procesamiento cognitivo superior y memoria</div>
+                            </div>
+                            <span class="text-xs font-mono px-2 py-1 bg-fuchsia-900/60 rounded text-fuchsia-200">40.0 Hz</span>
+                        </button>
+                    </div>
+                </div>
 
-          <!-- Banner de descarga de grabación WAV -->
-          <div id="downloadBanner" class="hidden p-3 bg-emerald-950/70 border border-emerald-500/30 rounded-xl flex items-center justify-between gap-3 text-xs">
-            <div class="flex items-center gap-2 text-emerald-300">
-              <i data-lucide="check-circle" class="w-4 h-4 shrink-0"></i>
-              <span>¡Grabación lista en formato WAV 16-bit!</span>
-            </div>
-            <a id="downloadLink" href="#" download="binaural-session.wav" class="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-lg flex items-center gap-1 transition">
-              <i data-lucide="download" class="w-3.5 h-3.5"></i>
-              <span>Descargar</span>
-            </a>
-          </div>
+                <!-- Sliders Frecuencias & Volumen -->
+                <div class="glass rounded-2xl p-5 flex flex-col gap-4">
+                    <!-- Frecuencia Portadora -->
+                    <div>
+                        <div class="flex justify-between text-xs font-semibold text-gray-300 mb-1">
+                            <span>Frecuencia Portadora (Tono Base)</span>
+                            <span id="carrierValue" class="font-mono text-indigo-400">200 Hz</span>
+                        </div>
+                        <input type="range" id="carrierSlider" min="80" max="500" step="1" value="200" class="w-full h-2 bg-gray-800 rounded-lg appearance-none cursor-pointer">
+                    </div>
 
-        </div>
+                    <!-- Frecuencia Binaural (Beat / Offset) -->
+                    <div id="binauralSliderContainer">
+                        <div class="flex justify-between text-xs font-semibold text-gray-300 mb-1">
+                            <span>Frecuencia Binaural / Pulso</span>
+                            <span id="beatValue" class="font-mono text-indigo-400">10.0 Hz</span>
+                        </div>
+                        <input type="range" id="beatSlider" min="0.5" max="50" step="0.5" value="10" class="w-full h-2 bg-gray-800 rounded-lg appearance-none cursor-pointer">
+                    </div>
 
-      </div>
+                    <!-- Ganancia Master -->
+                    <div>
+                        <div class="flex justify-between text-xs font-semibold text-gray-300 mb-1">
+                            <span>Volumen Máster</span>
+                            <span id="volumeValue" class="font-mono text-indigo-400">70%</span>
+                        </div>
+                        <input type="range" id="volumeSlider" min="0" max="100" step="1" value="70" class="w-full h-2 bg-gray-800 rounded-lg appearance-none cursor-pointer">
+                    </div>
+                </div>
 
-    </main>
+            </section>
 
-    <!-- Footer -->
-    <footer class="w-full max-w-6xl mx-auto px-4 py-3 text-center text-xs text-slate-500 border-t border-white/5">
-      <p>Cymatics & Binaural Mind Simulation &copy; Basado en la ecuación de onda en placas cuadradas de Ernst Chladni.</p>
-    </footer>
+            <!-- Panel Derecho: Visualizador Cimático y Card Descarga WAV (7 Cols) -->
+            <section class="lg:col-span-7 flex flex-col gap-6">
 
-  </div>
+                <!-- Tarjeta Descarga WAV (Oculta por defecto) -->
+                <div id="downloadCard" class="hidden glass rounded-2xl p-5 border-indigo-500/40 bg-indigo-500/10 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="p-3 bg-indigo-600/30 rounded-xl text-indigo-400">
+                            <i data-lucide="file-audio" class="w-6 h-6"></i>
+                        </div>
+                        <div>
+                            <div class="font-bold text-sm text-white">Sesión Grabada Completa</div>
+                            <div class="text-xs text-gray-300" id="downloadMeta">Format: WAV 16-bit PCM • Stereo</div>
+                        </div>
+                    </div>
+                    <a id="downloadBtn" download="binaural-session.wav" class="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs shadow-lg transition">
+                        <i data-lucide="download" class="w-4 h-4"></i>
+                        Descargar .WAV
+                    </a>
+                </div>
 
-  <script>
-    // --- Configuración de Presets de Ondas ---
-    const PRESETS = {
-      delta: { name: 'Delta', subtitle: 'Onda Delta (Sueño Profundo)', minFreq: 0.5, maxFreq: 4.0, defaultFreq: 2.5, themeClass: 'theme-delta', colorHex: '#818cf8' },
-      theta: { name: 'Theta', subtitle: 'Onda Theta (Meditación Profunda)', minFreq: 4.0, maxFreq: 8.0, defaultFreq: 6.0, themeClass: 'theme-theta', colorHex: '#34d399' },
-      alpha: { name: 'Alpha', subtitle: 'Onda Alpha (Relajación Consciente)', minFreq: 8.0, maxFreq: 13.0, defaultFreq: 10.0, themeClass: 'theme-alpha', colorHex: '#6ee7b7' },
-      beta:  { name: 'Beta',  subtitle: 'Onda Beta (Concentración y Estudio)', minFreq: 13.0, maxFreq: 30.0, defaultFreq: 20.0, themeClass: 'theme-beta', colorHex: '#fb923c' },
-      gamma: { name: 'Gamma', subtitle: 'Onda Gamma (Alto Rendimiento)', minFreq: 30.0, maxFreq: 50.0, defaultFreq: 40.0, themeClass: 'theme-gamma', colorHex: '#f472b6' }
-    };
+                <!-- Simulación Visual Cimática Info Overlay -->
+                <div class="glass rounded-2xl p-6 flex-1 flex flex-col justify-between relative overflow-hidden min-h-[420px]">
+                    <div class="flex items-start justify-between z-10">
+                        <div>
+                            <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                                Placa de Chladni Cimática
+                                <span id="waveBadge" class="text-xs px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">Onda Alpha</span>
+                            </h2>
+                            <p class="text-xs text-gray-400 mt-1">Patrón de resonancia acústica nodal generado por 22,000 granos de arena simulados en tiempo real.</p>
+                        </div>
+                    </div>
 
-    let currentPreset = 'alpha';
-    let currentMode = 'binaural'; // binaural, monaural, isochronic, white_noise, pink_noise
-    let isPlaying = false;
+                    <!-- Métricas en tiempo real de la onda -->
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 z-10 mt-auto pt-6">
+                        <div class="p-3 rounded-xl bg-gray-900/60 border border-gray-800">
+                            <div class="text-[10px] text-gray-400 uppercase">Canal Izquierdo</div>
+                            <div id="freqLeft" class="text-sm font-mono font-bold text-indigo-400">195.0 Hz</div>
+                        </div>
+                        <div class="p-3 rounded-xl bg-gray-900/60 border border-gray-800">
+                            <div class="text-[10px] text-gray-400 uppercase">Canal Derecho</div>
+                            <div id="freqRight" class="text-sm font-mono font-bold text-indigo-400">205.0 Hz</div>
+                        </div>
+                        <div class="p-3 rounded-xl bg-gray-900/60 border border-gray-800">
+                            <div class="text-[10px] text-gray-400 uppercase">Diferencial</div>
+                            <div id="freqDiff" class="text-sm font-mono font-bold text-indigo-400">10.0 Hz</div>
+                        </div>
+                        <div class="p-3 rounded-xl bg-gray-900/60 border border-gray-800">
+                            <div class="text-[10px] text-gray-400 uppercase">Estado Cimático</div>
+                            <div id="cymaticMod" class="text-sm font-mono font-bold text-indigo-400">m: 3.2 | n: 2.1</div>
+                        </div>
+                    </div>
+                </div>
 
-    // Frecuencias y parámetros de audio
-    let carrierFreq = 200;
-    let binauralFreq = 10.0;
-    let volume = 0.5;
+            </section>
+        </main>
+    </div>
 
-    // Web Audio API Nodes
-    let audioCtx = null;
-    let oscLeft = null, oscRight = null;
-    let panLeft = null, panRight = null;
-    let isoGain = null, lfoOsc = null;
-    let noiseNode = null, noiseFilter = null;
-    let masterGain = null;
+    <script>
+        // Inicializar Lucide Icons
+        lucide.createIcons();
 
-    // Grabador de Audio (MediaRecorder & WAV)
-    let mediaRecorder = null;
-    let audioDestinationNode = null;
-    let recordedChunks = [];
-    let isRecording = false;
-    let recordStartTime = 0;
-    let recordTimerInterval = null;
+        // --- Estado Global ---
+        let isPlaying = false;
+        let audioType = 'binaural'; // binaural, monaural, isochronic, pure, pink, white
+        let carrierFreq = 200;
+        let beatFreq = 10;
+        let masterVolume = 0.7;
 
-    // Parámetros Cimáticos
-    let chladniM = 3;
-    let chladniN = 4;
-    let aParam = 1.0;
-    let bParam = 1.0;
+        // --- Web Audio API Context ---
+        let audioCtx = null;
+        let masterGain = null;
+        let oscL = null, oscR = null;
+        let isochronicLfo = null, isochronicGain = null;
+        let noiseNode = null;
 
-    const NUM_PARTICLES = 22000;
-    const particles = [];
+        // Recording System
+        let mediaStreamDest = null;
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let isRecording = false;
+        let recStartTime = 0;
+        let recTimerInterval = null;
 
-    const canvas = document.getElementById('chladniCanvas');
-    const ctx = canvas.getContext('2d');
+        // --- Elementos DOM ---
+        const playBtn = document.getElementById('playBtn');
+        const playIcon = document.getElementById('playIcon');
+        const playText = document.getElementById('playText');
+        const recBtn = document.getElementById('recBtn');
+        const recDot = document.getElementById('recDot');
+        const recIcon = document.getElementById('recIcon');
+        const recText = document.getElementById('recText');
+        const recTimer = document.getElementById('recTimer');
+        const downloadCard = document.getElementById('downloadCard');
+        const downloadBtn = document.getElementById('downloadBtn');
 
-    function initParticles() {
-      particles.length = 0;
-      for (let i = 0; i < NUM_PARTICLES; i++) {
-        particles.push({
-          x: Math.random() * 2 - 1,
-          y: Math.random() * 2 - 1,
-          vx: 0,
-          vy: 0
+        const carrierSlider = document.getElementById('carrierSlider');
+        const beatSlider = document.getElementById('beatSlider');
+        const volumeSlider = document.getElementById('volumeSlider');
+        const carrierValue = document.getElementById('carrierValue');
+        const beatValue = document.getElementById('beatValue');
+        const volumeValue = document.getElementById('volumeValue');
+        const binauralSliderContainer = document.getElementById('binauralSliderContainer');
+
+        const freqLeft = document.getElementById('freqLeft');
+        const freqRight = document.getElementById('freqRight');
+        const freqDiff = document.getElementById('freqDiff');
+        const cymaticMod = document.getElementById('cymaticMod');
+        const waveBadge = document.getElementById('waveBadge');
+
+        // --- Configuración de Audio ---
+        function initAudioEngine() {
+            if (audioCtx) return;
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            audioCtx = new AudioContext();
+
+            masterGain = audioCtx.createGain();
+            masterGain.gain.setValueAtTime(0, audioCtx.currentTime);
+
+            // Destino para Grabación WAV
+            mediaStreamDest = audioCtx.createMediaStreamDestination();
+            masterGain.connect(audioCtx.destination);
+            masterGain.connect(mediaStreamDest);
+        }
+
+        function stopCurrentSources() {
+            if (oscL) { oscL.stop(); oscL.disconnect(); oscL = null; }
+            if (oscR) { oscR.stop(); oscR.disconnect(); oscR = null; }
+            if (isochronicLfo) { isochronicLfo.stop(); isochronicLfo.disconnect(); isochronicLfo = null; }
+            if (isochronicGain) { isochronicGain.disconnect(); isochronicGain = null; }
+            if (noiseNode) { noiseNode.stop(); noiseNode.disconnect(); noiseNode = null; }
+        }
+
+        function updateAudioNodes() {
+            if (!isPlaying || !audioCtx) return;
+
+            stopCurrentSources();
+            const now = audioCtx.currentTime;
+
+            if (audioType === 'binaural') {
+                const fL = Math.max(20, carrierFreq - beatFreq / 2);
+                const fR = carrierFreq + beatFreq / 2;
+
+                oscL = audioCtx.createOscillator();
+                oscR = audioCtx.createOscillator();
+                oscL.type = 'sine'; oscR.type = 'sine';
+                oscL.frequency.setValueAtTime(fL, now);
+                oscR.frequency.setValueAtTime(fR, now);
+
+                const merger = audioCtx.createChannelMerger(2);
+                oscL.connect(merger, 0, 0); // L
+                oscR.connect(merger, 0, 1); // R
+                merger.connect(masterGain);
+
+                oscL.start(); oscR.start();
+
+            } else if (audioType === 'monaural') {
+                const fL = Math.max(20, carrierFreq - beatFreq / 2);
+                const fR = carrierFreq + beatFreq / 2;
+
+                oscL = audioCtx.createOscillator();
+                oscR = audioCtx.createOscillator();
+                oscL.type = 'sine'; oscR.type = 'sine';
+                oscL.frequency.setValueAtTime(fL, now);
+                oscR.frequency.setValueAtTime(fR, now);
+
+                const sumGain = audioCtx.createGain();
+                sumGain.gain.setValueAtTime(0.5, now);
+                oscL.connect(sumGain);
+                oscR.connect(sumGain);
+                sumGain.connect(masterGain);
+
+                oscL.start(); oscR.start();
+
+            } else if (audioType === 'isochronic') {
+                oscL = audioCtx.createOscillator();
+                oscL.type = 'sine';
+                oscL.frequency.setValueAtTime(carrierFreq, now);
+
+                isochronicGain = audioCtx.createGain();
+                isochronicLfo = audioCtx.createOscillator();
+                isochronicLfo.type = 'square';
+                isochronicLfo.frequency.setValueAtTime(beatFreq, now);
+
+                const lfoGain = audioCtx.createGain();
+                lfoGain.gain.setValueAtTime(0.5, now);
+                isochronicLfo.connect(lfoGain);
+                lfoGain.connect(isochronicGain.gain);
+
+                oscL.connect(isochronicGain);
+                isochronicGain.connect(masterGain);
+
+                oscL.start(); isochronicLfo.start();
+
+            } else if (audioType === 'pure') {
+                oscL = audioCtx.createOscillator();
+                oscL.type = 'sine';
+                oscL.frequency.setValueAtTime(carrierFreq, now);
+
+                oscL.connect(masterGain);
+                oscL.start();
+
+            } else if (audioType === 'white' || audioType === 'pink') {
+                const bufferSize = audioCtx.sampleRate * 2;
+                const buffer = audioCtx.createBuffer(2, bufferSize, audioCtx.sampleRate);
+                const dataL = buffer.getChannelData(0);
+                const dataR = buffer.getChannelData(1);
+
+                if (audioType === 'white') {
+                    for (let i = 0; i < bufferSize; i++) {
+                        dataL[i] = Math.random() * 2 - 1;
+                        dataR[i] = Math.random() * 2 - 1;
+                    }
+                } else { // Pink Noise Algoritmo (3-pole)
+                    let b0L=0, b1L=0, b2L=0, b0R=0, b1R=0, b2R=0;
+                    for (let i = 0; i < bufferSize; i++) {
+                        let whiteL = Math.random() * 2 - 1;
+                        b0L = 0.99886 * b0L + whiteL * 0.0555179;
+                        b1L = 0.99332 * b1L + whiteL * 0.0750759;
+                        b2L = 0.96900 * b2L + whiteL * 0.1538520;
+                        dataL[i] = (b0L + b1L + b2L) * 0.11;
+
+                        let whiteR = Math.random() * 2 - 1;
+                        b0R = 0.99886 * b0R + whiteR * 0.0555179;
+                        b1R = 0.99332 * b1R + whiteR * 0.0750759;
+                        b2R = 0.96900 * b2R + whiteR * 0.1538520;
+                        dataR[i] = (b0R + b1R + b2R) * 0.11;
+                    }
+                }
+
+                noiseNode = audioCtx.createBufferSource();
+                noiseNode.buffer = buffer;
+                noiseNode.loop = true;
+                noiseNode.connect(masterGain);
+                noiseNode.start();
+            }
+        }
+
+        // UI Readouts Update
+        function updateUI() {
+            carrierValue.textContent = `${carrierFreq} Hz`;
+            beatValue.textContent = `${beatFreq.toFixed(1)} Hz`;
+            volumeValue.textContent = `${Math.round(masterVolume * 100)}%`;
+
+            if (audioType === 'pure' || audioType === 'white' || audioType === 'pink') {
+                binauralSliderContainer.classList.add('opacity-40', 'pointer-events-none');
+            } else {
+                binauralSliderContainer.classList.remove('opacity-40', 'pointer-events-none');
+            }
+
+            if (audioType === 'binaural' || audioType === 'monaural') {
+                const fL = Math.max(20, carrierFreq - beatFreq / 2);
+                const fR = carrierFreq + beatFreq / 2;
+                freqLeft.textContent = `${fL.toFixed(1)} Hz`;
+                freqRight.textContent = `${fR.toFixed(1)} Hz`;
+                freqDiff.textContent = `${beatFreq.toFixed(1)} Hz`;
+            } else if (audioType === 'isochronic') {
+                freqLeft.textContent = `${carrierFreq} Hz`;
+                freqRight.textContent = `${carrierFreq} Hz`;
+                freqDiff.textContent = `${beatFreq.toFixed(1)} Hz (Pulso)`;
+            } else if (audioType === 'pure') {
+                freqLeft.textContent = `${carrierFreq} Hz`;
+                freqRight.textContent = `${carrierFreq} Hz`;
+                freqDiff.textContent = `0 Hz (Pura)`;
+            } else {
+                freqLeft.textContent = `Espectro`;
+                freqRight.textContent = `Espectro`;
+                freqDiff.textContent = `Ruido`;
+            }
+
+            const m = (carrierFreq / 60).toFixed(1);
+            const n = ((carrierFreq + beatFreq) / 80).toFixed(1);
+            cymaticMod.textContent = `m: ${m} | n: ${n}`;
+        }
+
+        // Controls Event Listeners
+        carrierSlider.addEventListener('input', (e) => {
+            carrierFreq = parseFloat(e.target.value);
+            updateUI(); updateAudioNodes();
         });
-      }
-    }
+        beatSlider.addEventListener('input', (e) => {
+            beatFreq = parseFloat(e.target.value);
+            updateUI(); updateAudioNodes();
+        });
+        volumeSlider.addEventListener('input', (e) => {
+            masterVolume = parseFloat(e.target.value) / 100;
+            if (masterGain && audioCtx) {
+                masterGain.gain.setValueAtTime(isPlaying ? masterVolume : 0, audioCtx.currentTime);
+            }
+            updateUI();
+        });
 
-    function scatterSand() {
-      for (let i = 0; i < particles.length; i++) {
-        particles[i].x += (Math.random() - 0.5) * 0.5;
-        particles[i].y += (Math.random() - 0.5) * 0.5;
-        particles[i].x = Math.max(-0.95, Math.min(0.95, particles[i].x));
-        particles[i].y = Math.max(-0.95, Math.min(0.95, particles[i].y));
-      }
-    }
+        // Mode Selectors
+        document.querySelectorAll('.audio-type-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.audio-type-btn').forEach(b => {
+                    b.classList.remove('bg-indigo-600', 'border-indigo-500', 'text-white', 'shadow');
+                    b.classList.add('bg-gray-800', 'border-gray-700', 'text-gray-300');
+                });
+                btn.classList.remove('bg-gray-800', 'border-gray-700', 'text-gray-300');
+                btn.classList.add('bg-indigo-600', 'border-indigo-500', 'text-white', 'shadow');
 
-    function computeChladniParamsFromAudio() {
-      chladniM = 1.5 + (carrierFreq / 85.0);
-      chladniN = 2.0 + (carrierFreq / 110.0);
+                audioType = btn.dataset.type;
+                updateUI(); updateAudioNodes();
+            });
+        });
 
-      const modeText = currentMode.replace('_', ' ').toUpperCase();
-      document.getElementById('modeStatusDisplay').innerText = `Modo: ${modeText} (m:${chladniM.toFixed(1)}, n:${chladniN.toFixed(1)})`;
-    }
+        // Presets Click
+        document.querySelectorAll('#presetsGroup button').forEach(btn => {
+            btn.addEventListener('click', () => {
+                beatFreq = parseFloat(btn.dataset.beat);
+                beatSlider.value = beatFreq;
+                waveBadge.textContent = `Onda ${btn.dataset.name}`;
+                updateUI(); updateAudioNodes();
+            });
+        });
 
-    function chladniValue(x, y, m, n) {
-      const pi = Math.PI;
-      const nx = n * pi * x * 0.5;
-      const my = m * pi * y * 0.5;
-      const mx = m * pi * x * 0.5;
-      const ny = n * pi * y * 0.5;
+        // Play/Pause Audio Toggle
+        playBtn.addEventListener('click', async () => {
+            initAudioEngine();
+            if (audioCtx.state === 'suspended') {
+                await audioCtx.resume();
+            }
 
-      return aParam * Math.sin(nx) * Math.sin(my) + bParam * Math.sin(mx) * Math.sin(ny);
-    }
+            isPlaying = !isPlaying;
+            if (isPlaying) {
+                masterGain.gain.setValueAtTime(0, audioCtx.currentTime);
+                masterGain.gain.linearRampToValueAtTime(masterVolume, audioCtx.currentTime + 0.1);
+                updateAudioNodes();
+                playBtn.classList.replace('bg-indigo-600', 'bg-emerald-600');
+                playIcon.setAttribute('data-lucide', 'square');
+                playText.textContent = 'Detener Audio';
+            } else {
+                masterGain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.1);
+                setTimeout(stopCurrentSources, 100);
+                playBtn.classList.replace('bg-emerald-600', 'bg-indigo-600');
+                playIcon.setAttribute('data-lucide', 'play');
+                playText.textContent = 'Iniciar Audio';
+            }
+            lucide.createIcons();
+        });
 
-    function updateParticles(timestamp) {
-      computeChladniParamsFromAudio();
-      const step = 0.005;
+        // --- Exportación Grabación WAV ---
+        function encodeWAV(samplesL, samplesR, sampleRate) {
+            const buffer = new ArrayBuffer(44 + (samplesL.length + samplesR.length) * 2);
+            const view = new DataView(buffer);
 
-      let beatModulation = 0.1;
-      let vibrationIntensity = 0.0008;
+            const writeString = (offset, string) => {
+                for (let i = 0; i < string.length; i++) {
+                    view.setUint8(offset + i, string.charCodeAt(i));
+                }
+            };
 
-      if (currentMode === 'binaural' || currentMode === 'monaural') {
-        beatModulation = isPlaying ? 0.5 + 0.5 * Math.sin((timestamp / 1000) * (binauralFreq * Math.PI * 2)) : 0.1;
-        vibrationIntensity = isPlaying ? (0.008 + (volume * 0.025)) * (0.4 + 0.6 * beatModulation) : 0.0008;
-      } else if (currentMode === 'isochronic') {
-        const pulse = Math.sin((timestamp / 1000) * (binauralFreq * Math.PI * 2));
-        beatModulation = isPlaying ? (pulse > 0 ? 1.0 : 0.05) : 0.1;
-        vibrationIntensity = isPlaying ? (0.01 + (volume * 0.03)) * beatModulation : 0.0008;
-      } else if (currentMode === 'white_noise') {
-        vibrationIntensity = isPlaying ? (0.015 + (volume * 0.02)) : 0.0008;
-      } else if (currentMode === 'pink_noise') {
-        const organicPulse = 0.7 + 0.3 * Math.sin(timestamp / 800);
-        vibrationIntensity = isPlaying ? (0.01 * organicPulse + (volume * 0.015)) : 0.0008;
-      }
+            writeString(0, 'RIFF');
+            view.setUint32(4, 36 + (samplesL.length + samplesR.length) * 2, true);
+            writeString(8, 'WAVE');
+            writeString(12, 'fmt ');
+            view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true); // PCM
+            view.setUint16(22, 2, true); // Stereo
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, sampleRate * 4, true);
+            view.setUint16(32, 4, true);
+            view.setUint16(34, 16, true); // 16 bits
+            writeString(36, 'data');
+            view.setUint32(40, (samplesL.length + samplesR.length) * 2, true);
 
-      for (let i = 0; i < particles.length; i++) {
-        const p = particles[i];
-
-        if (currentMode === 'white_noise' && isPlaying) {
-          p.x += (Math.random() - 0.5) * vibrationIntensity;
-          p.y += (Math.random() - 0.5) * vibrationIntensity;
-        } else {
-          const val = chladniValue(p.x, p.y, chladniM, chladniN);
-          const valX = chladniValue(p.x + step, p.y, chladniM, chladniN);
-          const valY = chladniValue(p.x, p.y + step, chladniM, chladniN);
-
-          const gradX = (Math.abs(valX) - Math.abs(val)) / step;
-          const gradY = (Math.abs(valY) - Math.abs(val)) / step;
-
-          const jitter = isPlaying ? (Math.random() - 0.5) * vibrationIntensity * (currentMode === 'pink_noise' ? 1.2 : 0.4) : 0;
-
-          p.vx = -gradX * vibrationIntensity + jitter;
-          p.vy = -gradY * vibrationIntensity + jitter;
-
-          p.x += p.vx;
-          p.y += p.vy;
+            let offset = 44;
+            for (let i = 0; i < samplesL.length; i++) {
+                let sL = Math.max(-1, Math.min(1, samplesL[i]));
+                view.setInt16(offset, sL < 0 ? sL * 0x8000 : sL * 0x7FFF, true);
+                offset += 2;
+                let sR = Math.max(-1, Math.min(1, samplesR[i]));
+                view.setInt16(offset, sR < 0 ? sR * 0x8000 : sR * 0x7FFF, true);
+                offset += 2;
+            }
+            return new Blob([view], { type: 'audio/wav' });
         }
 
-        if (p.x < -0.95 || p.x > 0.95) p.x = Math.max(-0.95, Math.min(0.95, p.x));
-        if (p.y < -0.95 || p.y > 0.95) p.y = Math.max(-0.95, Math.min(0.95, p.y));
-      }
-    }
+        recBtn.addEventListener('click', () => {
+            initAudioEngine();
+            if (!isRecording) {
+                audioChunks = [];
+                mediaRecorder = new MediaRecorder(mediaStreamDest.stream);
+                mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
+                mediaRecorder.onstop = async () => {
+                    const blob = new Blob(audioChunks, { type: 'audio/webm' });
+                    const arrayBuffer = await blob.arrayBuffer();
+                    const decoded = await audioCtx.decodeAudioData(arrayBuffer);
 
-    function renderChladni() {
-      const w = canvas.width;
-      const h = canvas.height;
+                    const wavBlob = encodeWAV(decoded.getChannelData(0), decoded.getChannelData(1), decoded.sampleRate);
+                    const url = URL.createObjectURL(wavBlob);
+                    downloadBtn.href = url;
+                    downloadCard.classList.remove('hidden');
+                };
 
-      ctx.fillStyle = '#020617';
-      ctx.fillRect(0, 0, w, h);
+                mediaRecorder.start();
+                isRecording = true;
+                recStartTime = Date.now();
+                recTimerInterval = setInterval(() => {
+                    const elapsed = Math.floor((Date.now() - recStartTime) / 1000);
+                    const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
+                    const s = String(elapsed % 60).padStart(2, '0');
+                    recTimer.textContent = `${m}:${s}`;
+                }, 1000);
 
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(w * 0.02, h * 0.02, w * 0.96, h * 0.96);
+                recDot.classList.remove('hidden');
+                recTimer.classList.remove('hidden');
+                recText.textContent = 'REC...';
+                recBtn.classList.add('border-red-500', 'bg-red-500/10');
+            } else {
+                mediaRecorder.stop();
+                isRecording = false;
+                clearInterval(recTimerInterval);
+                recDot.classList.add('hidden');
+                recTimer.classList.add('hidden');
+                recText.textContent = 'REC';
+                recBtn.classList.remove('border-red-500', 'bg-red-500/10');
+            }
+        });
 
-      const colorHex = PRESETS[currentPreset].colorHex;
-      ctx.fillStyle = colorHex;
-      ctx.globalAlpha = 0.85;
+        // --- SIMULACIÓN CIMÁTICA DE CHLADNI EN CANVAS ---
+        const canvas = document.getElementById('cymaticsCanvas');
+        const ctx = canvas.getContext('2d');
+        let width, height;
+        const numParticles = 22000;
+        const particles = new Float32Array(numParticles * 4); // x, y, vx, vy
 
-      const halfW = w / 2;
-      const halfH = h / 2;
-
-      for (let i = 0; i < particles.length; i++) {
-        const p = particles[i];
-        const px = halfW + p.x * (halfW * 0.92);
-        const py = halfH + p.y * (halfH * 0.92);
-
-        ctx.fillRect(px, py, 1.25, 1.25);
-      }
-
-      ctx.globalAlpha = 1.0;
-    }
-
-    function animLoop(timestamp) {
-      updateParticles(timestamp);
-      renderChladni();
-      requestAnimationFrame(animLoop);
-    }
-
-    // --- Web Audio Controls ---
-    function initAudioContext() {
-      if (!audioCtx) {
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        audioCtx = new AudioContext();
-      }
-      if (audioCtx.state === 'suspended') {
-        audioCtx.resume();
-      }
-    }
-
-    function generateNoiseBuffer(type) {
-      const bufferSize = audioCtx.sampleRate * 2;
-      const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-      const data = buffer.getChannelData(0);
-
-      if (type === 'white') {
-        for (let i = 0; i < bufferSize; i++) {
-          data[i] = Math.random() * 2 - 1;
+        function resizeCanvas() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            for (let i = 0; i < numParticles; i++) {
+                particles[i * 4] = (Math.random() - 0.5) * Math.min(width, height) * 0.8;
+                particles[i * 4 + 1] = (Math.random() - 0.5) * Math.min(width, height) * 0.8;
+            }
         }
-      } else if (type === 'pink') {
-        let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
-        for (let i = 0; i < bufferSize; i++) {
-          const white = Math.random() * 2 - 1;
-          b0 = 0.99886 * b0 + white * 0.0555179;
-          b1 = 0.99332 * b1 + white * 0.0750759;
-          b2 = 0.96900 * b2 + white * 0.1538520;
-          b3 = 0.86650 * b3 + white * 0.3104856;
-          b4 = 0.55000 * b4 + white * 0.5329522;
-          b5 = -0.7616 * b5 - white * 0.0168980;
-          data[i] = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
-          data[i] *= 0.11;
-          b6 = white * 0.115926;
-        }
-      }
-      return buffer;
-    }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
 
-    function stopCurrentNodes() {
-      if (masterGain && audioCtx) {
-        masterGain.gain.linearRampToValueAtTime(0.0001, audioCtx.currentTime + 0.03);
-      }
-      setTimeout(() => {
-        if (oscLeft) { try { oscLeft.stop(); oscLeft.disconnect(); } catch(e){} oscLeft = null; }
-        if (oscRight) { try { oscRight.stop(); oscRight.disconnect(); } catch(e){} oscRight = null; }
-        if (lfoOsc) { try { lfoOsc.stop(); lfoOsc.disconnect(); } catch(e){} lfoOsc = null; }
-        if (noiseNode) { try { noiseNode.stop(); noiseNode.disconnect(); } catch(e){} noiseNode = null; }
-      }, 35);
-    }
+        let t = 0;
+        function renderCymatics() {
+            ctx.fillStyle = 'rgba(11, 15, 25, 0.2)';
+            ctx.fillRect(0, 0, width, height);
 
-    function startAudio() {
-      initAudioContext();
-      stopCurrentNodes();
+            const m = carrierFreq / 55;
+            const n = (carrierFreq + beatFreq) / 75;
+            const scale = Math.min(width, height) * 0.38;
+            const activeVib = isPlaying ? masterVolume : 0.05;
 
-      setTimeout(() => {
-        masterGain = audioCtx.createGain();
-        masterGain.gain.setValueAtTime(0, audioCtx.currentTime);
-        masterGain.gain.linearRampToValueAtTime(volume, audioCtx.currentTime + 0.05);
-        masterGain.connect(audioCtx.destination);
+            // Modulación en pulso según tipo de onda
+            let beatPulse = 1.0;
+            if (audioType === 'binaural' || audioType === 'monaural' || audioType === 'isochronic') {
+                beatPulse = 0.5 + 0.5 * Math.sin(2 * Math.PI * beatFreq * t);
+            }
 
-        // Si estamos grabando, conectamos el master al nodo de grabación
-        if (audioDestinationNode) {
-          masterGain.connect(audioDestinationNode);
-        }
+            ctx.fillStyle = `rgba(165, 180, 252, ${0.4 + beatPulse * 0.4})`;
 
-        if (currentMode === 'binaural') {
-          oscLeft = audioCtx.createOscillator();
-          panLeft = audioCtx.createStereoPanner ? audioCtx.createStereoPanner() : null;
-          oscLeft.type = 'sine';
-          oscLeft.frequency.setValueAtTime(carrierFreq, audioCtx.currentTime);
+            const centerX = width / 2;
+            const centerY = height / 2;
 
-          if (panLeft) {
-            panLeft.pan.setValueAtTime(-1, audioCtx.currentTime);
-            oscLeft.connect(panLeft);
-            panLeft.connect(masterGain);
-          } else { oscLeft.connect(masterGain); }
+            for (let i = 0; i < numParticles; i++) {
+                let px = particles[i * 4];
+                let py = particles[i * 4 + 1];
 
-          oscRight = audioCtx.createOscillator();
-          panRight = audioCtx.createStereoPanner ? audioCtx.createStereoPanner() : null;
-          oscRight.type = 'sine';
-          oscRight.frequency.setValueAtTime(carrierFreq + binauralFreq, audioCtx.currentTime);
+                const nx = px / scale;
+                const ny = py / scale;
 
-          if (panRight) {
-            panRight.pan.setValueAtTime(1, audioCtx.currentTime);
-            oscRight.connect(panRight);
-            panRight.connect(masterGain);
-          } else { oscRight.connect(masterGain); }
+                // Ecuación Nodal de Chladni
+                let val = Math.sin(n * Math.PI * nx) * Math.sin(m * Math.PI * ny) - 
+                          Math.sin(m * Math.PI * nx) * Math.sin(n * Math.PI * ny);
 
-          oscLeft.start();
-          oscRight.start();
+                if (audioType === 'white' || audioType === 'pink') {
+                    val += (Math.random() - 0.5) * 0.5;
+                }
 
-        } else if (currentMode === 'monaural') {
-          oscLeft = audioCtx.createOscillator();
-          oscRight = audioCtx.createOscillator();
-          oscLeft.type = 'sine';
-          oscRight.type = 'sine';
-          oscLeft.frequency.setValueAtTime(carrierFreq, audioCtx.currentTime);
-          oscRight.frequency.setValueAtTime(carrierFreq + binauralFreq, audioCtx.currentTime);
+                const gradX = Math.cos(n * Math.PI * nx) * Math.sin(m * Math.PI * ny) * n - Math.cos(m * Math.PI * nx) * Math.sin(n * Math.PI * ny) * m;
+                const gradY = Math.sin(n * Math.PI * nx) * Math.cos(m * Math.PI * ny) * m - Math.sin(m * Math.PI * nx) * Math.cos(n * Math.PI * ny) * n;
 
-          const monauralGain = audioCtx.createGain();
-          monauralGain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+                const force = Math.abs(val) * activeVib * (0.8 + beatPulse * 0.4);
 
-          oscLeft.connect(monauralGain);
-          oscRight.connect(monauralGain);
-          monauralGain.connect(masterGain);
+                particles[i * 4 + 2] += -gradX * force * 0.25 + (Math.random() - 0.5) * force * 0.3;
+                particles[i * 4 + 3] += -gradY * force * 0.25 + (Math.random() - 0.5) * force * 0.3;
 
-          oscLeft.start();
-          oscRight.start();
+                particles[i * 4] += particles[i * 4 + 2];
+                particles[i * 4 + 1] += particles[i * 4 + 3];
 
-        } else if (currentMode === 'isochronic') {
-          oscLeft = audioCtx.createOscillator();
-          oscLeft.type = 'sine';
-          oscLeft.frequency.setValueAtTime(carrierFreq, audioCtx.currentTime);
+                particles[i * 4 + 2] *= 0.82;
+                particles[i * 4 + 3] *= 0.82;
 
-          isoGain = audioCtx.createGain();
-          isoGain.gain.setValueAtTime(0, audioCtx.currentTime);
+                // Rebound en límites
+                if (Math.abs(particles[i * 4]) > scale || Math.abs(particles[i * 4 + 1]) > scale) {
+                    particles[i * 4] = (Math.random() - 0.5) * scale * 1.5;
+                    particles[i * 4 + 1] = (Math.random() - 0.5) * scale * 1.5;
+                }
 
-          lfoOsc = audioCtx.createOscillator();
-          lfoOsc.type = 'square';
-          lfoOsc.frequency.setValueAtTime(binauralFreq, audioCtx.currentTime);
+                ctx.fillRect(centerX + particles[i * 4], centerY + particles[i * 4 + 1], 1.2, 1.2);
+            }
 
-          const lfoGainNode = audioCtx.createGain();
-          lfoGainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
-
-          lfoOsc.connect(lfoGainNode);
-          lfoGainNode.connect(isoGain.gain);
-
-          oscLeft.connect(isoGain);
-          isoGain.connect(masterGain);
-
-          oscLeft.start();
-          lfoOsc.start();
-
-        } else if (currentMode === 'white_noise' || currentMode === 'pink_noise') {
-          const type = currentMode === 'white_noise' ? 'white' : 'pink';
-          noiseNode = audioCtx.createBufferSource();
-          noiseNode.buffer = generateNoiseBuffer(type);
-          noiseNode.loop = true;
-
-          noiseFilter = audioCtx.createBiquadFilter();
-          noiseFilter.type = 'lowpass';
-          noiseFilter.frequency.setValueAtTime(carrierFreq * 10, audioCtx.currentTime);
-
-          noiseNode.connect(noiseFilter);
-          noiseFilter.connect(masterGain);
-          noiseNode.start();
+            t += 0.016;
+            requestAnimationFrame(renderCymatics);
         }
 
-        isPlaying = true;
-        updatePlayButtonUI();
-      }, 40);
-    }
-
-    // --- Sistema de Grabación y Encoder WAV ---
-    function toggleRecording() {
-      if (isRecording) {
-        stopRecording();
-      } else {
-        startRecording();
-      }
-    }
-
-    function startRecording() {
-      initAudioContext();
-      if (!isPlaying) {
-        startAudio();
-      }
-
-      audioDestinationNode = audioCtx.createMediaStreamDestination();
-      if (masterGain) {
-        masterGain.connect(audioDestinationNode);
-      }
-
-      recordedChunks = [];
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=pcm') 
-        ? 'audio/webm;codecs=pcm' 
-        : (MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/ogg');
-
-      try {
-        mediaRecorder = new MediaRecorder(audioDestinationNode.stream, { mimeType });
-      } catch (e) {
-        mediaRecorder = new MediaRecorder(audioDestinationNode.stream);
-      }
-
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) recordedChunks.push(e.data);
-      };
-
-      mediaRecorder.onstop = async () => {
-        const superBlob = new Blob(recordedChunks, { type: mediaRecorder.mimeType });
-        const arrayBuffer = await superBlob.arrayBuffer();
-        const decodedBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-        const wavBlob = audioBufferToWav(decodedBuffer);
-        
-        const url = URL.createObjectURL(wavBlob);
-        const downloadLink = document.getElementById('downloadLink');
-        downloadLink.href = url;
-        downloadLink.download = `${currentMode}_${PRESETS[currentPreset].name}_${Math.round(carrierFreq)}Hz.wav`;
-        document.getElementById('downloadBanner').classList.remove('hidden');
-      };
-
-      mediaRecorder.start(100);
-      isRecording = true;
-      recordStartTime = Date.now();
-
-      // UI updates
-      document.getElementById('recordDot').classList.add('animate-ping');
-      document.getElementById('recordBtnText').innerText = 'Detener';
-      document.getElementById('recordTimer').classList.remove('hidden');
-      document.getElementById('downloadBanner').classList.add('hidden');
-
-      recordTimerInterval = setInterval(updateRecordTimer, 1000);
-    }
-
-    function stopRecording() {
-      if (!isRecording) return;
-      isRecording = false;
-
-      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-        mediaRecorder.stop();
-      }
-
-      clearInterval(recordTimerInterval);
-      document.getElementById('recordDot').classList.remove('animate-ping');
-      document.getElementById('recordBtnText').innerText = 'Grabar WAV';
-      document.getElementById('recordTimer').classList.add('hidden');
-      document.getElementById('recordTimer').innerText = '00:00';
-    }
-
-    function updateRecordTimer() {
-      const elapsedSec = Math.floor((Date.now() - recordStartTime) / 1000);
-      const mins = String(Math.floor(elapsedSec / 60)).padStart(2, '0');
-      const secs = String(elapsedSec % 60).padStart(2, '0');
-      document.getElementById('recordTimer').innerText = `${mins}:${secs}`;
-    }
-
-    // Encoder de AudioBuffer a archivo WAV (PCM de 16 Bits)
-    function audioBufferToWav(buffer) {
-      const numChannels = buffer.numberOfChannels;
-      const sampleRate = buffer.sampleRate;
-      const format = 1; // PCM
-      const bitDepth = 16;
-      
-      let result;
-      if (numChannels === 2) {
-        result = interleave(buffer.getChannelData(0), buffer.getChannelData(1));
-      } else {
-        result = buffer.getChannelData(0);
-      }
-
-      return createWavBlob(result, numChannels, sampleRate, bitDepth);
-    }
-
-    function interleave(inputL, inputR) {
-      const length = inputL.length + inputR.length;
-      const result = new Float32Array(length);
-      let index = 0, inputIndex = 0;
-      while (index < length) {
-        result[index++] = inputL[inputIndex];
-        result[index++] = inputR[inputIndex];
-        inputIndex++;
-      }
-      return result;
-    }
-
-    function createWavBlob(samples, numChannels, sampleRate, bitDepth) {
-      const bytesPerSample = bitDepth / 8;
-      const blockAlign = numChannels * bytesPerSample;
-      const dataSize = samples.length * bytesPerSample;
-      const buffer = new ArrayBuffer(44 + dataSize);
-      const view = new DataView(buffer);
-
-      /* RIFF identifier */
-      writeString(view, 0, 'RIFF');
-      /* RIFF chunk length */
-      view.setUint32(4, 36 + dataSize, true);
-      /* RIFF type */
-      writeString(view, 8, 'WAVE');
-      /* format chunk identifier */
-      writeString(view, 12, 'fmt ');
-      /* format chunk length */
-      view.setUint32(16, 16, true);
-      /* sample format (raw PCM) */
-      view.setUint16(20, 1, true);
-      /* channel count */
-      view.setUint16(22, numChannels, true);
-      /* sample rate */
-      view.setUint32(24, sampleRate, true);
-      /* byte rate (sample rate * block align) */
-      view.setUint32(28, sampleRate * blockAlign, true);
-      /* block align (channel count * bytes per sample) */
-      view.setUint16(32, blockAlign, true);
-      /* bits per sample */
-      view.setUint16(34, bitDepth, true);
-      /* data chunk identifier */
-      writeString(view, 36, 'data');
-      /* data chunk length */
-      view.setUint32(40, dataSize, true);
-
-      // Escribir muestras PCM de 16-bit
-      let offset = 44;
-      for (let i = 0; i < samples.length; i++, offset += 2) {
-        const s = Math.max(-1, Math.min(1, samples[i]));
-        view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
-      }
-
-      return new Blob([buffer], { type: 'audio/wav' });
-    }
-
-    function writeString(view, offset, string) {
-      for (let i = 0; i < string.length; i++) {
-        view.setUint8(offset + i, string.charCodeAt(i));
-      }
-    }
-
-    function stopAudio() {
-      if (masterGain && audioCtx) {
-        masterGain.gain.linearRampToValueAtTime(0.0001, audioCtx.currentTime + 0.05);
-        setTimeout(() => {
-          stopCurrentNodes();
-          isPlaying = false;
-          updatePlayButtonUI();
-        }, 60);
-      } else {
-        isPlaying = false;
-        updatePlayButtonUI();
-      }
-    }
-
-    function togglePlay() {
-      if (isPlaying) stopAudio(); else startAudio();
-    }
-
-    function applyAudioFrequencies() {
-      const leftFreq = carrierFreq;
-      const rightFreq = carrierFreq + binauralFreq;
-
-      if (audioCtx) {
-        if (oscLeft) oscLeft.frequency.setTargetAtTime(leftFreq, audioCtx.currentTime, 0.02);
-        if (oscRight) oscRight.frequency.setTargetAtTime(rightFreq, audioCtx.currentTime, 0.02);
-        if (lfoOsc) lfoOsc.frequency.setTargetAtTime(binauralFreq, audioCtx.currentTime, 0.02);
-        if (noiseFilter) noiseFilter.frequency.setTargetAtTime(carrierFreq * 10, audioCtx.currentTime, 0.02);
-      }
-
-      document.getElementById('binauralFreqDisplay').innerText = binauralFreq.toFixed(1);
-      document.getElementById('freqLDisplay').innerText = `${leftFreq.toFixed(1)} Hz`;
-      document.getElementById('freqRDisplay').innerText = `${rightFreq.toFixed(1)} Hz`;
-    }
-
-    function setAudioMode(mode) {
-      currentMode = mode;
-
-      document.querySelectorAll('.mode-btn').forEach(btn => {
-        btn.classList.remove('bg-white/20', 'text-white', 'shadow');
-        btn.classList.add('text-slate-400');
-      });
-
-      const activeBtn = document.getElementById(`mode-${mode}`);
-      if (activeBtn) {
-        activeBtn.classList.add('bg-white/20', 'text-white', 'shadow');
-        activeBtn.classList.remove('text-slate-400');
-      }
-
-      const isNoise = mode === 'white_noise' || mode === 'pink_noise';
-      const isIso = mode === 'isochronic';
-
-      document.getElementById('binauralContainer').style.display = isNoise ? 'none' : 'block';
-      document.getElementById('channelRBox').style.display = (isIso || isNoise) ? 'none' : 'block';
-
-      if (isNoise) {
-        document.getElementById('carrierLabel').innerText = 'Filtro de Ruido (Corte)';
-      } else {
-        document.getElementById('carrierLabel').innerText = 'Frecuencia Portadora (Reactividad Cimática)';
-      }
-
-      if (isPlaying) {
-        startAudio();
-      } else {
-        applyAudioFrequencies();
-      }
-    }
-
-    function updateCarrierFreq(val) {
-      carrierFreq = parseFloat(val);
-      document.getElementById('carrierSliderVal').innerText = `${Math.round(carrierFreq)} Hz`;
-      applyAudioFrequencies();
-    }
-
-    function setAudioCarrier(val) {
-      carrierFreq = val;
-      document.getElementById('carrierSlider').value = val;
-      document.getElementById('carrierSliderVal').innerText = `${val} Hz`;
-      scatterSand();
-      applyAudioFrequencies();
-    }
-
-    function updateBinauralFreq(val) {
-      binauralFreq = parseFloat(val);
-      document.getElementById('binauralSliderVal').innerText = `${binauralFreq.toFixed(1)} Hz`;
-      applyAudioFrequencies();
-    }
-
-    function updateVolume(val) {
-      volume = parseFloat(val);
-      document.getElementById('volumeSliderVal').innerText = `${Math.round(volume * 100)}%`;
-      if (masterGain && audioCtx && isPlaying) {
-        masterGain.gain.setTargetAtTime(volume, audioCtx.currentTime, 0.02);
-      }
-    }
-
-    function selectPreset(key) {
-      const preset = PRESETS[key];
-      if (!preset) return;
-
-      currentPreset = key;
-      binauralFreq = preset.defaultFreq;
-      document.getElementById('waveTypeName').innerText = preset.subtitle;
-      document.getElementById('binauralSlider').value = binauralFreq;
-      document.getElementById('binauralSliderVal').innerText = `${binauralFreq.toFixed(1)} Hz`;
-
-      const body = document.body;
-      Object.values(PRESETS).forEach(p => body.classList.remove(p.themeClass));
-      body.classList.add(preset.themeClass);
-
-      document.querySelectorAll('.preset-card').forEach(btn => btn.classList.remove('ring-2', 'ring-white'));
-      const activeBtn = document.getElementById(`btn-${key}`);
-      if (activeBtn) activeBtn.classList.add('ring-2', 'ring-white');
-
-      applyAudioFrequencies();
-      scatterSand();
-    }
-
-    function updatePlayButtonUI() {
-      const playBtn = document.getElementById('playBtn');
-      const playIcon = document.getElementById('playIcon');
-
-      if (isPlaying) {
-        playBtn.classList.add('ring-4', 'ring-white/30');
-        playIcon.setAttribute('data-lucide', 'pause');
-        playIcon.classList.remove('translate-x-0.5');
-      } else {
-        playBtn.classList.remove('ring-4', 'ring-white/30');
-        playIcon.setAttribute('data-lucide', 'play');
-        playIcon.classList.add('translate-x-0.5');
-      }
-      lucide.createIcons();
-    }
-
-    function resizeCanvas() {
-      const container = canvas.parentElement;
-      canvas.width = container.clientWidth;
-      canvas.height = container.clientHeight;
-    }
-
-    window.onload = function() {
-      lucide.createIcons();
-      window.addEventListener('resize', resizeCanvas);
-      resizeCanvas();
-      initParticles();
-      selectPreset('alpha');
-      setAudioMode('binaural');
-      requestAnimationFrame(animLoop);
-    };
-  </script>
-
+        updateUI();
+        renderCymatics();
+    </script>
 </body>
 </html>
