@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-slate-950 text-slate-100">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Binaural Mind & Cymatics Studio</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Fonts: Inter & Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['Outfit', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    input[type=range] {
+      -webkit-appearance: none;
+      background: transparent;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      height: 18px;
+      width: 18px;
+      border-radius: 50%;
+      background: #ffffff;
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.6);
+      margin-top: -5px;
+      transition: all 0.15s ease;
+    }
+    input[type=range]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+    input[type=range]::-webkit-slider-runnable-track {
+      width: 100%;
+      height: 8px;
+      cursor: pointer;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 4px;
+    }
+
+    .theme-transition {
+      transition: background 1s ease-in-out, border-color 0.8s ease;
+    }
+
+    .theme-delta { background: radial-gradient(circle at 50% 30%, #1e1b4b 0%, #0f172a 60%, #020617 100%); --accent-color: #818cf8; }
+    .theme-theta { background: radial-gradient(circle at 50% 30%, #064e3b 0%, #022c22 60%, #020617 100%); --accent-color: #34d399; }
+    .theme-alpha { background: radial-gradient(circle at 50% 30%, #065f46 0%, #14532d 60%, #020617 100%); --accent-color: #6ee7b7; }
+    .theme-beta { background: radial-gradient(circle at 50% 30%, #7c2d12 0%, #451a03 60%, #020617 100%); --accent-color: #fb923c; }
+    .theme-gamma { background: radial-gradient(circle at 50% 30%, #701a75 0%, #4c1d95 60%, #020617 100%); --accent-color: #f472b6; }
+
+    .accent-text { color: var(--accent-color); }
+    .accent-bg { background-color: var(--accent-color); }
+  </style>
+</head>
+
+<body class="h-full flex flex-col justify-between theme-transition theme-alpha text-slate-100 font-sans antialiased relative overflow-x-hidden min-h-screen">
+
+  <div class="relative z-10 flex flex-col min-h-screen">
+    
+    <!-- Header -->
+    <header class="w-full max-w-6xl mx-auto px-4 pt-4 pb-2 flex justify-between items-center">
+      <div class="flex items-center gap-3">
+        <div class="p-2.5 rounded-2xl bg-white/10 backdrop-blur-md border border-white/10 shadow-inner">
+          <i data-lucide="grid" class="w-6 h-6 accent-text"></i>
+        </div>
+        <div>
+          <h1 class="font-display font-bold text-xl tracking-tight">Cymatics & Binaural Lab</h1>
+          <p class="text-xs text-slate-400 font-medium">Placa de Chladni & Ondas Binaurales</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <button onclick="scatterSand()" class="px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 text-xs font-medium flex items-center gap-1.5 transition">
+          <i data-lucide="sparkles" class="w-3.5 h-3.5 accent-text"></i>
+          <span>Agitar Arena</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="w-full max-w-6xl mx-auto px-4 py-4 flex-1 flex flex-col lg:flex-row gap-6 items-center lg:items-start justify-center">
+
+      <!-- Left Column: Chladni Plate Canvas Visualizer -->
+      <div class="w-full lg:w-1/2 flex flex-col items-center justify-center">
+        <div class="relative w-full max-w-[460px] aspect-square rounded-3xl p-3 bg-slate-900/80 border border-white/15 shadow-2xl backdrop-blur-xl flex flex-col items-center justify-center">
+          
+          <!-- Chladni Metal Plate Canvas -->
+          <div class="relative w-full h-full rounded-2xl overflow-hidden bg-slate-950 border border-white/10 flex items-center justify-center shadow-inner">
+            <canvas id="chladniCanvas" class="w-full h-full block cursor-crosshair"></canvas>
+
+            <!-- Overlay Indicators -->
+            <div class="absolute top-3 left-3 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 font-mono text-[11px] text-slate-300 flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full accent-bg animate-pulse"></span>
+              <span>Modo (m:<b id="mValDisplay">3</b>, n:<b id="nValDisplay">3</b>)</span>
+            </div>
+
+            <div class="absolute bottom-3 right-3 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 font-mono text-[11px] text-slate-300">
+              <span id="particleCountDisplay">22,000</span> Partículas
+            </div>
+          </div>
+
+        </div>
+        <p class="text-[11px] text-slate-400 mt-2 text-center">Simulación física real: La arena vibra alejándose de los antinodos y se deposita en las líneas nodales estáticas.</p>
+      </div>
+
+      <!-- Right Column: Audio & Chladni Controls -->
+      <div class="w-full lg:w-1/2 flex flex-col gap-4">
+
+        <!-- Brainwave / Cymatic Presets -->
+        <section class="grid grid-cols-5 gap-2">
+          <button onclick="selectPreset('delta')" id="btn-delta" class="preset-card p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-center transition">
+            <span class="block font-display font-bold text-sm">Delta</span>
+            <span class="block text-[10px] text-indigo-300 font-mono">2.5 Hz</span>
+          </button>
+          <button onclick="selectPreset('theta')" id="btn-theta" class="preset-card p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-center transition">
+            <span class="block font-display font-bold text-sm">Theta</span>
+            <span class="block text-[10px] text-emerald-300 font-mono">6.0 Hz</span>
+          </button>
+          <button onclick="selectPreset('alpha')" id="btn-alpha" class="preset-card p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-center transition ring-2 ring-white">
+            <span class="block font-display font-bold text-sm">Alpha</span>
+            <span class="block text-[10px] text-teal-300 font-mono">10.0 Hz</span>
+          </button>
+          <button onclick="selectPreset('beta')" id="btn-beta" class="preset-card p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-center transition">
+            <span class="block font-display font-bold text-sm">Beta</span>
+            <span class="block text-[10px] text-amber-300 font-mono">20.0 Hz</span>
+          </button>
+          <button onclick="selectPreset('gamma')" id="btn-gamma" class="preset-card p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-center transition">
+            <span class="block font-display font-bold text-sm">Gamma</span>
+            <span class="block text-[10px] text-pink-300 font-mono">40.0 Hz</span>
+          </button>
+        </section>
+
+        <!-- Main Audio Control Panel -->
+        <div class="rounded-2xl bg-slate-900/70 border border-white/10 p-5 backdrop-blur-xl space-y-4">
+          
+          <div class="flex items-center justify-between gap-4">
+            <div class="flex items-center gap-4">
+              <button id="playBtn" onclick="togglePlay()" class="w-14 h-14 rounded-full bg-white text-slate-950 flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition group shrink-0">
+                <i id="playIcon" data-lucide="play" class="w-6 h-6 fill-current text-slate-950 translate-x-0.5"></i>
+              </button>
+              <div>
+                <div class="flex items-baseline gap-1.5">
+                  <span id="binauralFreqDisplay" class="font-display font-bold text-3xl">10.0</span>
+                  <span class="text-sm font-mono accent-text font-bold">Hz</span>
+                </div>
+                <p id="waveTypeName" class="text-xs text-slate-400">Onda Alpha (Relajación)</p>
+              </div>
+            </div>
+
+            <div class="text-right font-mono text-xs text-slate-400 bg-black/40 px-3 py-2 rounded-xl border border-white/5">
+              <div>L: <span id="freqLDisplay" class="text-slate-200 font-bold">200 Hz</span></div>
+              <div>R: <span id="freqRDisplay" class="text-slate-200 font-bold">210 Hz</span></div>
+            </div>
+          </div>
+
+          <!-- Cymatic Pattern Presets (Modes m, n & Chladni Frequencies) -->
+          <div class="space-y-1.5 pt-2 border-t border-white/10">
+            <label class="text-xs font-semibold text-slate-300 flex items-center justify-between">
+              <span>Patrones Cimáticos de Resonancia</span>
+              <span class="text-[10px] text-slate-400 font-normal">Frecuencias Físicas de Placa</span>
+            </label>
+            <div class="grid grid-cols-4 gap-2">
+              <button onclick="setChladniPreset(2, 3, 220)" class="px-2 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-mono text-center">m=2, n=3<br><span class="text-[10px] text-slate-400">220 Hz</span></button>
+              <button onclick="setChladniPreset(3, 3, 432)" class="px-2 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-mono text-center">m=3, n=3<br><span class="text-[10px] text-slate-400">432 Hz</span></button>
+              <button onclick="setChladniPreset(5, 4, 1024)" class="px-2 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-mono text-center">m=5, n=4<br><span class="text-[10px] text-slate-400">1024 Hz</span></button>
+              <button onclick="setChladniPreset(7, 6, 2041)" class="px-2 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-mono text-center">m=7, n=6<br><span class="text-[10px] text-slate-400">2041 Hz</span></button>
+            </div>
+          </div>
+
+          <!-- Sliders -->
+          <div class="space-y-3 pt-2 border-t border-white/10">
+            
+            <!-- Chladni m Parameter -->
+            <div class="space-y-1">
+              <div class="flex justify-between text-xs">
+                <span class="text-slate-300">Modo Cimático M (Complejidad X)</span>
+                <span id="mSliderVal" class="font-mono accent-text font-bold">3</span>
+              </div>
+              <input type="range" id="mSlider" min="1" max="10" step="1" value="3" oninput="updateM(this.value)">
+            </div>
+
+            <!-- Chladni n Parameter -->
+            <div class="space-y-1">
+              <div class="flex justify-between text-xs">
+                <span class="text-slate-300">Modo Cimático N (Complejidad Y)</span>
+                <span id="nSliderVal" class="font-mono accent-text font-bold">3</span>
+              </div>
+              <input type="range" id="nSlider" min="1" max="10" step="1" value="3" oninput="updateN(this.value)">
+            </div>
+
+            <!-- Audio Carrier Freq -->
+            <div class="space-y-1">
+              <div class="flex justify-between text-xs">
+                <span class="text-slate-300">Frecuencia Portadora (Hz)</span>
+                <span id="carrierSliderVal" class="font-mono text-slate-200 font-bold">200 Hz</span>
+              </div>
+              <input type="range" id="carrierSlider" min="100" max="2200" step="1" value="200" oninput="updateCarrierFreq(this.value)">
+            </div>
+
+            <!-- Volume Slider -->
+            <div class="space-y-1">
+              <div class="flex justify-between text-xs">
+                <span class="text-slate-300">Volumen</span>
+                <span id="volumeSliderVal" class="font-mono text-slate-200 font-bold">50%</span>
+              </div>
+              <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="0.5" oninput="updateVolume(this.value)">
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="w-full max-w-6xl mx-auto px-4 py-3 text-center text-xs text-slate-500 border-t border-white/5">
+      <p>Cymatics & Binaural Mind Simulation &copy; Basado en la ecuación nodal de Ernst Chladni.</p>
+    </footer>
+
+  </div>
+
+  <script>
+    // --- Configuración de Presets de Ondas ---
+    const PRESETS = {
+      delta: { name: 'Delta', subtitle: 'Onda Delta (Sueño Profundo)', minFreq: 0.5, maxFreq: 4.0, defaultFreq: 2.5, themeClass: 'theme-delta', colorHex: '#818cf8' },
+      theta: { name: 'Theta', subtitle: 'Onda Theta (Meditación Profunda)', minFreq: 4.0, maxFreq: 8.0, defaultFreq: 6.0, themeClass: 'theme-theta', colorHex: '#34d399' },
+      alpha: { name: 'Alpha', subtitle: 'Onda Alpha (Relajación Consciente)', minFreq: 8.0, maxFreq: 13.0, defaultFreq: 10.0, themeClass: 'theme-alpha', colorHex: '#6ee7b7' },
+      beta:  { name: 'Beta',  subtitle: 'Onda Beta (Concentración y Estudio)', minFreq: 13.0, maxFreq: 30.0, defaultFreq: 20.0, themeClass: 'theme-beta', colorHex: '#fb923c' },
+      gamma: { name: 'Gamma', subtitle: 'Onda Gamma (Alto Rendimiento)', minFreq: 30.0, maxFreq: 50.0, defaultFreq: 40.0, themeClass: 'theme-gamma', colorHex: '#f472b6' }
+    };
+
+    let currentPreset = 'alpha';
+    let isPlaying = false;
+
+    // Frecuencias y parámetros audio
+    let carrierFreq = 200;
+    let binauralFreq = 10.0;
+    let volume = 0.5;
+
+    // Web Audio API
+    let audioCtx = null;
+    let oscLeft = null, oscRight = null;
+    let panLeft = null, panRight = null;
+    let masterGain = null;
+
+    // --- Parámetros Cimáticos (Chladni) ---
+    let chladniM = 3;
+    let chladniN = 3;
+    let aParam = 1.0;
+    let bParam = 1.0;
+
+    // Partículas de Arena
+    const NUM_PARTICLES = 22000;
+    const particles = [];
+
+    const canvas = document.getElementById('chladniCanvas');
+    const ctx = canvas.getContext('2d');
+
+    function initParticles() {
+      particles.length = 0;
+      for (let i = 0; i < NUM_PARTICLES; i++) {
+        particles.push({
+          x: Math.random() * 2 - 1, // Normalizado [-1, 1]
+          y: Math.random() * 2 - 1,
+          vx: 0,
+          vy: 0
+        });
+      }
+    }
+
+    function scatterSand() {
+      for (let i = 0; i < particles.length; i++) {
+        particles[i].x += (Math.random() - 0.5) * 0.4;
+        particles[i].y += (Math.random() - 0.5) * 0.4;
+        particles[i].x = Math.max(-0.95, Math.min(0.95, particles[i].x));
+        particles[i].y = Math.max(-0.95, Math.min(0.95, particles[i].y));
+      }
+    }
+
+    // Ecuación de la Placa de Chladni: N(x,y) = a*sin(n*pi*x)*sin(m*pi*y) + b*sin(m*pi*x)*sin(n*pi*y)
+    function chladniValue(x, y, m, n) {
+      const pi = Math.PI;
+      const nx = n * pi * x * 0.5;
+      const my = m * pi * y * 0.5;
+      const mx = m * pi * x * 0.5;
+      const ny = n * pi * y * 0.5;
+
+      return aParam * Math.sin(nx) * Math.sin(my) + bParam * Math.sin(mx) * Math.sin(ny);
+    }
+
+    function updateParticles() {
+      const step = 0.004;
+      const intensity = isPlaying ? (0.015 + (volume * 0.01)) : 0.005;
+
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+
+        // Calcular gradiente de vibración (fuerza alejándose del antinodo)
+        const val = chladniValue(p.x, p.y, chladniM, chladniN);
+        const valX = chladniValue(p.x + step, p.y, chladniM, chladniN);
+        const valY = chladniValue(p.x, p.y + step, chladniM, chladniN);
+
+        // Derivada empírica del valor absoluto de la vibración
+        const gradX = (Math.abs(valX) - Math.abs(val)) / step;
+        const gradY = (Math.abs(valY) - Math.abs(val)) / step;
+
+        // La arena se desplaza hacia las líneas nodales (donde la vibración es 0)
+        p.vx = -gradX * intensity + (Math.random() - 0.5) * 0.001;
+        p.vy = -gradY * intensity + (Math.random() - 0.5) * 0.001;
+
+        p.x += p.vx;
+        p.y += p.vy;
+
+        // Rebote en bordes de la placa
+        if (p.x < -0.95 || p.x > 0.95) p.x = Math.max(-0.95, Math.min(0.95, p.x));
+        if (p.y < -0.95 || p.y > 0.95) p.y = Math.max(-0.95, Math.min(0.95, p.y));
+      }
+    }
+
+    function renderChladni() {
+      const w = canvas.width;
+      const h = canvas.height;
+
+      // Fondo metálico oscuro
+      ctx.fillStyle = '#020617';
+      ctx.fillRect(0, 0, w, h);
+
+      // Cuadrícula tenue metálica
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(w * 0.02, h * 0.02, w * 0.96, h * 0.96);
+
+      // Color de la arena basado en el preset
+      const colorHex = PRESETS[currentPreset].colorHex;
+      ctx.fillStyle = colorHex;
+      ctx.globalAlpha = 0.85;
+
+      const halfW = w / 2;
+      const halfH = h / 2;
+
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        const px = halfW + p.x * (halfW * 0.92);
+        const py = halfH + p.y * (halfH * 0.92);
+
+        ctx.fillRect(px, py, 1.2, 1.2);
+      }
+
+      ctx.globalAlpha = 1.0;
+    }
+
+    function animLoop() {
+      updateParticles();
+      renderChladni();
+      requestAnimationFrame(animLoop);
+    }
+
+    // --- Web Audio Controls ---
+    function initAudioContext() {
+      if (!audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioContext();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function startAudio() {
+      initAudioContext();
+
+      masterGain = audioCtx.createGain();
+      masterGain.gain.setValueAtTime(0, audioCtx.currentTime);
+      masterGain.gain.linearRampToValueAtTime(volume, audioCtx.currentTime + 0.05);
+      masterGain.connect(audioCtx.destination);
+
+      oscLeft = audioCtx.createOscillator();
+      panLeft = audioCtx.createStereoPanner ? audioCtx.createStereoPanner() : null;
+      oscLeft.type = 'sine';
+      oscLeft.frequency.setValueAtTime(carrierFreq, audioCtx.currentTime);
+
+      if (panLeft) {
+        panLeft.pan.setValueAtTime(-1, audioCtx.currentTime);
+        oscLeft.connect(panLeft);
+        panLeft.connect(masterGain);
+      } else {
+        oscLeft.connect(masterGain);
+      }
+
+      oscRight = audioCtx.createOscillator();
+      panRight = audioCtx.createStereoPanner ? audioCtx.createStereoPanner() : null;
+      oscRight.type = 'sine';
+      oscRight.frequency.setValueAtTime(carrierFreq + binauralFreq, audioCtx.currentTime);
+
+      if (panRight) {
+        panRight.pan.setValueAtTime(1, audioCtx.currentTime);
+        oscRight.connect(panRight);
+        panRight.connect(masterGain);
+      } else {
+        oscRight.connect(masterGain);
+      }
+
+      oscLeft.start();
+      oscRight.start();
+      isPlaying = true;
+      updatePlayButtonUI();
+    }
+
+    function stopAudio() {
+      if (masterGain && audioCtx) {
+        masterGain.gain.linearRampToValueAtTime(0.0001, audioCtx.currentTime + 0.05);
+        setTimeout(() => {
+          if (oscLeft) { oscLeft.stop(); oscLeft.disconnect(); }
+          if (oscRight) { oscRight.stop(); oscRight.disconnect(); }
+          isPlaying = false;
+          updatePlayButtonUI();
+        }, 60);
+      } else {
+        isPlaying = false;
+        updatePlayButtonUI();
+      }
+    }
+
+    function togglePlay() {
+      if (isPlaying) stopAudio(); else startAudio();
+    }
+
+    function applyAudioFrequencies() {
+      const leftFreq = carrierFreq;
+      const rightFreq = carrierFreq + binauralFreq;
+
+      if (oscLeft && audioCtx) oscLeft.frequency.setTargetAtTime(leftFreq, audioCtx.currentTime, 0.02);
+      if (oscRight && audioCtx) oscRight.frequency.setTargetAtTime(rightFreq, audioCtx.currentTime, 0.02);
+
+      document.getElementById('binauralFreqDisplay').innerText = binauralFreq.toFixed(1);
+      document.getElementById('freqLDisplay').innerText = `${leftFreq.toFixed(1)} Hz`;
+      document.getElementById('freqRDisplay').innerText = `${rightFreq.toFixed(1)} Hz`;
+    }
+
+    function updateCarrierFreq(val) {
+      carrierFreq = parseFloat(val);
+      document.getElementById('carrierSliderVal').innerText = `${carrierFreq} Hz`;
+      applyAudioFrequencies();
+    }
+
+    function updateVolume(val) {
+      volume = parseFloat(val);
+      document.getElementById('volumeSliderVal').innerText = `${Math.round(volume * 100)}%`;
+      if (masterGain && audioCtx && isPlaying) {
+        masterGain.gain.setTargetAtTime(volume, audioCtx.currentTime, 0.02);
+      }
+    }
+
+    function updateM(val) {
+      chladniM = parseInt(val);
+      document.getElementById('mValDisplay').innerText = chladniM;
+      document.getElementById('mSliderVal').innerText = chladniM;
+      scatterSand();
+    }
+
+    function updateN(val) {
+      chladniN = parseInt(val);
+      document.getElementById('nValDisplay').innerText = chladniN;
+      document.getElementById('nSliderVal').innerText = chladniN;
+      scatterSand();
+    }
+
+    function setChladniPreset(m, n, freq) {
+      chladniM = m;
+      chladniN = n;
+      document.getElementById('mSlider').value = m;
+      document.getElementById('nSlider').value = n;
+      document.getElementById('mValDisplay').innerText = m;
+      document.getElementById('nValDisplay').innerText = n;
+      document.getElementById('mSliderVal').innerText = m;
+      document.getElementById('nSliderVal').innerText = n;
+
+      updateCarrierFreq(freq);
+      document.getElementById('carrierSlider').value = freq;
+      scatterSand();
+    }
+
+    function selectPreset(key) {
+      const preset = PRESETS[key];
+      if (!preset) return;
+
+      currentPreset = key;
+      binauralFreq = preset.defaultFreq;
+      document.getElementById('waveTypeName').innerText = preset.subtitle;
+
+      const body = document.body;
+      Object.values(PRESETS).forEach(p => body.classList.remove(p.themeClass));
+      body.classList.add(preset.themeClass);
+
+      document.querySelectorAll('.preset-card').forEach(btn => btn.classList.remove('ring-2', 'ring-white'));
+      const activeBtn = document.getElementById(`btn-${key}`);
+      if (activeBtn) activeBtn.classList.add('ring-2', 'ring-white');
+
+      applyAudioFrequencies();
+    }
+
+    function updatePlayButtonUI() {
+      const playBtn = document.getElementById('playBtn');
+      const playIcon = document.getElementById('playIcon');
+
+      if (isPlaying) {
+        playBtn.classList.add('ring-4', 'ring-white/30');
+        playIcon.setAttribute('data-lucide', 'pause');
+        playIcon.classList.remove('translate-x-0.5');
+      } else {
+        playBtn.classList.remove('ring-4', 'ring-white/30');
+        playIcon.setAttribute('data-lucide', 'play');
+        playIcon.classList.add('translate-x-0.5');
+      }
+      lucide.createIcons();
+    }
+
+    function resizeCanvas() {
+      const container = canvas.parentElement;
+      canvas.width = container.clientWidth;
+      canvas.height = container.clientHeight;
+    }
+
+    window.onload = function() {
+      lucide.createIcons();
+      window.addEventListener('resize', resizeCanvas);
+      resizeCanvas();
+      initParticles();
+      selectPreset('alpha');
+      animLoop();
+    };
+  </script>
+
+</body>
+</html>
