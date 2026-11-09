@@ -125,7 +125,7 @@
           </div>
 
         </div>
-        <p class="text-[11px] text-slate-400 mt-2 text-center">Acoplamiento directo: La señal sonora del Analizador (DSP) acciona físicamente la arena.</p>
+        <p class="text-[11px] text-slate-400 mt-2 text-center">Síntesis Espectral Activa: El análisis FFT del audio dirige las formas en tiempo real.</p>
       </div>
 
       <!-- Right Column: Audio & Chladni Controls -->
@@ -286,8 +286,11 @@
     let isoGain = null, lfoOsc = null;
     let noiseNode = null, noiseFilter = null;
     let masterGain = null;
-    let analyserNode = null; // Analizador de señal acoplado en tiempo real
-    let audioDataArray = null;
+    
+    // Analizador FFT Avanzado
+    let analyserNode = null;
+    let timeDataArray = null;
+    let freqDataArray = null;
 
     let mediaRecorder = null;
     let audioDestinationNode = null;
@@ -326,59 +329,41 @@
       }
     }
 
-    // --- LECTURA FÍSICA DIRECTA DEL GRAFO DE AUDIO ---
-    function getAudioSignalProperties() {
+    // --- ANÁLISIS ESPECTRAL DIRECTO (FFT) PARA LAS FORMAS ---
+    function analyzeAudioAndExtractChladniModes() {
       if (!isPlaying || !analyserNode || !audioCtx) {
-        return { activeEnergy: 0, realCarrier: carrierFreq, realBeat: binauralFreq };
+        return { energy: 0, n: 3, m: 2 };
       }
 
-      // 1. Extraer amplitud real de la forma de onda que viaja por el analizador
-      analyserNode.getByteTimeDomainData(audioDataArray);
+      // 1. Extraer forma de onda para la energía global (RMS)
+      analyserNode.getByteTimeDomainData(timeDataArray);
       let sumSq = 0;
-      for (let i = 0; i < audioDataArray.length; i++) {
-        let norm = (audioDataArray[i] - 128) / 128.0; // Centrar en 0 (-1 a 1)
+      for (let i = 0; i < timeDataArray.length; i++) {
+        let norm = (timeDataArray[i] - 128) / 128.0;
         sumSq += norm * norm;
       }
-      let rms = Math.sqrt(sumSq / audioDataArray.length); // Valor eficaz de la onda actual
+      let energy = Math.sqrt(sumSq / timeDataArray.length);
 
-      // 2. Consultar frecuencia activa directo desde la memoria del oscilador activo
-      let realCarrier = carrierFreq;
-      if (oscLeft && oscLeft.frequency) {
-        realCarrier = oscLeft.frequency.value;
+      // 2. Extraer frecuencias armónicas reales (FFT) para moldear n y m de forma orgánica
+      analyserNode.getByteFrequencyData(freqDataArray);
+      
+      let lowSum = 0, highSum = 0;
+      let half = Math.floor(freqDataArray.length / 2);
+      for (let i = 0; i < half; i++) lowSum += freqDataArray[i];
+      for (let i = half; i < freqDataArray.length; i++) highSum += freqDataArray[i];
+
+      let lowAvg = lowSum / half;
+      let highAvg = highSum / (freqDataArray.length - half);
+
+      // Los armónicos actuales del audio dictan la geometría de la placa
+      let n = Math.floor(1 + (lowAvg / 255) * 4); // Rango de 1 a 5
+      let m = Math.floor(1 + (highAvg / 255) * 4); // Rango de 1 a 5
+
+      if (n === m) {
+        m = (n % 4) + 1;
       }
 
-      return {
-        activeEnergy: rms, // Si el sonido se detiene o silencia, rms baja a 0
-        realCarrier: realCarrier,
-        realBeat: binauralFreq
-      };
-    }
-
-    function updateChladniModesFromAudioNode(realCarrier, realBeat) {
-      const carrierNorm = Math.max(0, Math.min(1, (realCarrier - 100) / 500));
-      const beatNorm = Math.max(0, Math.min(1, realBeat / 50));
-
-      let modeFactor = 1;
-      if (currentMode === 'monaural') modeFactor = 1.25;
-      else if (currentMode === 'isochronic') modeFactor = 1.5;
-      else if (currentMode === 'pure') modeFactor = 0.75;
-      else if (currentMode === 'pink_noise') modeFactor = 1.8;
-
-      chladniN = Math.floor(2 + ((carrierNorm * 3 + beatNorm * 2) * modeFactor) % 4);
-      chladniM = Math.floor(1 + ((carrierNorm * 2 + beatNorm * 3) * modeFactor) % 4);
-
-      if (chladniN === chladniM) {
-        chladniM = (chladniN % 4) + 1;
-      }
-
-      const modeText = currentMode.replace('_', ' ').toUpperCase();
-      if (isPlaying) {
-        document.getElementById('modeStatusDisplay').innerText = `Activo: ${modeText} (n:${chladniN}, m:${chladniM})`;
-        document.getElementById('statusDot').className = 'w-2 h-2 rounded-full accent-bg animate-pulse';
-      } else {
-        document.getElementById('modeStatusDisplay').innerText = `Placa en Silencio (Standby)`;
-        document.getElementById('statusDot').className = 'w-2 h-2 rounded-full bg-slate-500';
-      }
+      return { energy, n, m };
     }
 
     function chladniValue(x, y, n, m) {
@@ -389,30 +374,33 @@
     }
 
     function updateParticles(timestamp) {
-      // Leer energía real enviada por los osciladores al AnalyserNode
-      const audioState = getAudioSignalProperties();
+      // Analizar lo que está sonando en tiempo real en el DSP de audio
+      const audioState = analyzeAudioAndExtractChladniModes();
 
-      // Si no hay energía sonora activa (silencio/pausa), la arena se detiene en seco
-      if (audioState.activeEnergy <= 0.001) {
+      if (audioState.energy <= 0.001) {
         document.getElementById('modeStatusDisplay').innerText = `Placa en Silencio (Standby)`;
         document.getElementById('statusDot').className = 'w-2 h-2 rounded-full bg-slate-500';
-        return;
+        return; // Silencio absoluto: la arena no se mueve
       }
 
-      updateChladniModesFromAudioNode(audioState.realCarrier, audioState.realBeat);
+      chladniN = audioState.n;
+      chladniM = audioState.m;
 
-      // La velocidad y fuerza de atracción dependen directamente de la amplitud medida por el analizador
-      const pullSpeed = 0.005 + audioState.activeEnergy * 0.06;
-      const vibrationIntensity = 0.02 + audioState.activeEnergy * 0.25;
-      const residualJitter = 0.002 + audioState.activeEnergy * 0.008;
+      const modeText = currentMode.replace('_', ' ').toUpperCase();
+      document.getElementById('modeStatusDisplay').innerText = `Espectro Activo: ${modeText} (n:${chladniN}, m:${chladniM})`;
+      document.getElementById('statusDot').className = 'w-2 h-2 rounded-full accent-bg animate-pulse';
+
+      const pullSpeed = 0.005 + audioState.energy * 0.06;
+      const vibrationIntensity = 0.02 + audioState.energy * 0.25;
+      const residualJitter = 0.002 + audioState.energy * 0.008;
       const step = 0.003;
 
       for (let i = 0; i < particles.length; i++) {
         let p = particles[i];
 
         if (currentMode === 'white_noise') {
-          p.x += (Math.random() - 0.5) * audioState.activeEnergy * 0.1;
-          p.y += (Math.random() - 0.5) * audioState.activeEnergy * 0.1;
+          p.x += (Math.random() - 0.5) * audioState.energy * 0.1;
+          p.y += (Math.random() - 0.5) * audioState.energy * 0.1;
         } else {
           let val = chladniValue(p.x, p.y, chladniN, chladniM);
           
@@ -480,7 +468,7 @@
       requestAnimationFrame(animLoop);
     }
 
-    // --- WEB AUDIO ENGINE CON ANALIZADOR ACOPLADO ---
+    // --- WEB AUDIO ENGINE CON ANALIZADOR FFT COMPLETO ---
     function initAudioContext() {
       if (!audioCtx) {
         const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -535,14 +523,15 @@
       stopCurrentNodes();
 
       setTimeout(() => {
-        // Conexión del Grafo de Audio con AnalyserNode
         masterGain = audioCtx.createGain();
         masterGain.gain.setValueAtTime(0, audioCtx.currentTime);
         masterGain.gain.linearRampToValueAtTime(volume, audioCtx.currentTime + 0.05);
 
+        // Configuración de Analizador FFT en tiempo real
         analyserNode = audioCtx.createAnalyser();
-        analyserNode.fftSize = 64;
-        audioDataArray = new Uint8Array(analyserNode.frequencyBinCount);
+        analyserNode.fftSize = 128;
+        timeDataArray = new Uint8Array(analyserNode.frequencyBinCount);
+        freqDataArray = new Uint8Array(analyserNode.frequencyBinCount);
 
         masterGain.connect(analyserNode);
         analyserNode.connect(audioCtx.destination);
