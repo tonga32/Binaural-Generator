@@ -116,7 +116,7 @@
             <!-- Overlay Indicators -->
             <div class="absolute top-3 left-3 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 font-mono text-[11px] text-slate-300 flex items-center gap-2">
               <span class="w-2 h-2 rounded-full accent-bg animate-pulse"></span>
-              <span id="modeStatusDisplay">Modo: Binaural (m:3.0, n:5.0)</span>
+              <span id="modeStatusDisplay">Modo: Binaural (m:3, n:4)</span>
             </div>
 
             <div class="absolute bottom-3 right-3 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 font-mono text-[11px] text-slate-300">
@@ -125,7 +125,7 @@
           </div>
 
         </div>
-        <p class="text-[11px] text-slate-400 mt-2 text-center">Simulación reactiva: El patrón se ajusta dinámicamente según el modo acústico, la frecuencia portadora y la pulsación.</p>
+        <p class="text-[11px] text-slate-400 mt-2 text-center">Simulación física real: El patrón nodal se forma en el centro de la placa cuadrada.</p>
       </div>
 
       <!-- Right Column: Audio & Chladni Controls -->
@@ -273,15 +273,13 @@
     };
 
     let currentPreset = 'alpha';
-    let currentMode = 'binaural'; // binaural, monaural, isochronic, pure, white_noise, pink_noise
+    let currentMode = 'binaural';
     let isPlaying = false;
 
-    // Frecuencias y parámetros de audio
     let carrierFreq = 200;
     let binauralFreq = 10.0;
     let volume = 0.5;
 
-    // Web Audio API Nodes
     let audioCtx = null;
     let oscLeft = null, oscRight = null;
     let panLeft = null, panRight = null;
@@ -289,7 +287,6 @@
     let noiseNode = null, noiseFilter = null;
     let masterGain = null;
 
-    // Grabador de Audio (MediaRecorder & WAV)
     let mediaRecorder = null;
     let audioDestinationNode = null;
     let recordedChunks = [];
@@ -300,8 +297,6 @@
     // Parámetros Cimáticos
     let chladniM = 3;
     let chladniN = 5;
-    let aParam = 1.0;
-    let bParam = 1.0;
 
     const NUM_PARTICLES = 22000;
     const particles = [];
@@ -313,8 +308,8 @@
       particles.length = 0;
       for (let i = 0; i < NUM_PARTICLES; i++) {
         particles.push({
-          x: Math.random() * 2 - 1,
-          y: Math.random() * 2 - 1,
+          x: (Math.random() - 0.5) * 1.8,
+          y: (Math.random() - 0.5) * 1.8,
           vx: 0,
           vy: 0
         });
@@ -323,70 +318,65 @@
 
     function scatterSand() {
       for (let i = 0; i < particles.length; i++) {
-        particles[i].x += (Math.random() - 0.5) * 0.5;
-        particles[i].y += (Math.random() - 0.5) * 0.5;
-        particles[i].x = Math.max(-0.95, Math.min(0.95, particles[i].x));
-        particles[i].y = Math.max(-0.95, Math.min(0.95, particles[i].y));
+        particles[i].x = (Math.random() - 0.5) * 1.8;
+        particles[i].y = (Math.random() - 0.5) * 1.8;
+        particles[i].vx = 0;
+        particles[i].vy = 0;
       }
     }
 
-    // --- CÁLCULO MEJORADO DE MODOS ARMÓNICOS DE CHLADNI ---
+    // --- CÁLCULO DE MODOS DE CHLADNI CENTRADOS Y ARMÓNICOS ---
     function computeChladniParamsFromAudio() {
-      // Normalizamos la frecuencia entre 100 Hz y 600 Hz
       const norm = Math.max(0, Math.min(1, (carrierFreq - 100) / 500));
-      
-      // Mapeamos a modos armónicos enteros/discretos para garantizar geometrías cerradas
-      chladniM = Math.floor(2 + norm * 4); // M varía de 2 a 6
-      chladniN = Math.floor(3 + Math.abs(Math.sin(norm * Math.PI * 2)) * 4); // N varía alternando
+      // Mapeo armónico entero limpio para forzar figuras simétricas cerradas
+      chladniM = Math.floor(2 + norm * 3.9); 
+      chladniN = Math.floor(3 + Math.abs(Math.sin(norm * Math.PI * 3)) * 3.9);
 
-      // Garantizamos que m y n nunca sean iguales para evitar el colapso diagonal
       if (chladniM === chladniN) {
         chladniN = chladniM + 1;
       }
 
       const modeText = currentMode.replace('_', ' ').toUpperCase();
-      document.getElementById('modeStatusDisplay').innerText = `Modo: ${modeText} (m:${chladniM.toFixed(1)}, n:${chladniN.toFixed(1)})`;
+      document.getElementById('modeStatusDisplay').innerText = `Modo: ${modeText} (m:${chladniM}, n:${chladniN})`;
     }
 
+    // Ecuación de Chladni corregida con dominio normalizado [0, 1] en el centro de la placa
     function chladniValue(x, y, m, n) {
       const pi = Math.PI;
-      const nx = n * pi * x * 0.5;
-      const my = m * pi * y * 0.5;
-      const mx = m * pi * x * 0.5;
-      const ny = n * pi * y * 0.5;
-
-      return aParam * Math.sin(nx) * Math.sin(my) + bParam * Math.sin(mx) * Math.sin(ny);
+      const X = (x + 1) * 0.5; // Mapeo estricto al centro de la placa cuadrada
+      const Y = (y + 1) * 0.5;
+      return Math.sin(m * pi * X) * Math.sin(n * pi * Y) - Math.sin(n * pi * X) * Math.sin(m * pi * Y);
     }
 
     function updateParticles(timestamp) {
       computeChladniParamsFromAudio();
-      const step = 0.005;
+      const step = 0.008;
 
       let beatModulation = 0.1;
       let vibrationIntensity = 0.0008;
 
       if (currentMode === 'binaural' || currentMode === 'monaural') {
         beatModulation = isPlaying ? 0.5 + 0.5 * Math.sin((timestamp / 1000) * (binauralFreq * Math.PI * 2)) : 0.1;
-        vibrationIntensity = isPlaying ? (0.008 + (volume * 0.025)) * (0.4 + 0.6 * beatModulation) : 0.0008;
+        vibrationIntensity = isPlaying ? (0.003 + (volume * 0.012)) * (0.4 + 0.6 * beatModulation) : 0.0005;
       } else if (currentMode === 'isochronic') {
         const pulse = Math.sin((timestamp / 1000) * (binauralFreq * Math.PI * 2));
         beatModulation = isPlaying ? (pulse > 0 ? 1.0 : 0.05) : 0.1;
-        vibrationIntensity = isPlaying ? (0.01 + (volume * 0.03)) * beatModulation : 0.0008;
+        vibrationIntensity = isPlaying ? (0.004 + (volume * 0.015)) * beatModulation : 0.0005;
       } else if (currentMode === 'pure') {
-        vibrationIntensity = isPlaying ? (0.01 + (volume * 0.02)) : 0.0008;
+        vibrationIntensity = isPlaying ? (0.004 + (volume * 0.012)) : 0.0005;
       } else if (currentMode === 'white_noise') {
-        vibrationIntensity = isPlaying ? (0.015 + (volume * 0.02)) : 0.0008;
+        vibrationIntensity = isPlaying ? (0.008 + (volume * 0.015)) : 0.0005;
       } else if (currentMode === 'pink_noise') {
         const organicPulse = 0.7 + 0.3 * Math.sin(timestamp / 800);
-        vibrationIntensity = isPlaying ? (0.01 * organicPulse + (volume * 0.015)) : 0.0008;
+        vibrationIntensity = isPlaying ? (0.004 * organicPulse + (volume * 0.008)) : 0.0005;
       }
 
       for (let i = 0; i < particles.length; i++) {
         const p = particles[i];
 
         if (currentMode === 'white_noise' && isPlaying) {
-          p.x += (Math.random() - 0.5) * vibrationIntensity;
-          p.y += (Math.random() - 0.5) * vibrationIntensity;
+          p.x += (Math.random() - 0.5) * vibrationIntensity * 5;
+          p.y += (Math.random() - 0.5) * vibrationIntensity * 5;
         } else {
           const val = chladniValue(p.x, p.y, chladniM, chladniN);
           const valX = chladniValue(p.x + step, p.y, chladniM, chladniN);
@@ -395,17 +385,23 @@
           const gradX = (Math.abs(valX) - Math.abs(val)) / step;
           const gradY = (Math.abs(valY) - Math.abs(val)) / step;
 
-          const jitter = isPlaying ? (Math.random() - 0.5) * vibrationIntensity * (currentMode === 'pink_noise' ? 1.2 : 0.3) : 0;
+          const jitter = isPlaying ? (Math.random() - 0.5) * vibrationIntensity * 2 : (Math.random() - 0.5) * 0.001;
 
-          p.vx = -gradX * vibrationIntensity + jitter;
-          p.vy = -gradY * vibrationIntensity + jitter;
+          // Física con amortiguación (damping) para que la arena frene sobre las líneas nodales
+          p.vx = (p.vx - gradX * vibrationIntensity * 15 + jitter) * 0.84;
+          p.vy = (p.vy - gradY * vibrationIntensity * 15 + jitter) * 0.84;
 
           p.x += p.vx;
           p.y += p.vy;
         }
 
-        if (p.x < -0.95 || p.x > 0.95) p.x = Math.max(-0.95, Math.min(0.95, p.x));
-        if (p.y < -0.95 || p.y > 0.95) p.y = Math.max(-0.95, Math.min(0.95, p.y));
+        // Rebote suave o reseteo si se escapan de la placa
+        if (p.x < -0.92 || p.x > 0.92 || p.y < -0.92 || p.y > 0.92) {
+          p.x = (Math.random() - 0.5) * 1.5;
+          p.y = (Math.random() - 0.5) * 1.5;
+          p.vx = 0; 
+          p.vy = 0;
+        }
       }
     }
 
@@ -416,23 +412,23 @@
       ctx.fillStyle = '#020617';
       ctx.fillRect(0, 0, w, h);
 
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(w * 0.02, h * 0.02, w * 0.96, h * 0.96);
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(w * 0.04, h * 0.04, w * 0.92, h * 0.92);
 
       const colorHex = PRESETS[currentPreset].colorHex;
       ctx.fillStyle = colorHex;
-      ctx.globalAlpha = 0.85;
+      ctx.globalAlpha = 0.9;
 
       const halfW = w / 2;
       const halfH = h / 2;
 
       for (let i = 0; i < particles.length; i++) {
         const p = particles[i];
-        const px = halfW + p.x * (halfW * 0.92);
-        const py = halfH + p.y * (halfH * 0.92);
+        const px = halfW + p.x * (halfW * 0.88);
+        const py = halfH + p.y * (halfH * 0.88);
 
-        ctx.fillRect(px, py, 1.25, 1.25);
+        ctx.fillRect(px, py, 1.4, 1.4);
       }
 
       ctx.globalAlpha = 1.0;
@@ -686,7 +682,6 @@
       document.getElementById('recordTimer').innerText = `${mins}:${secs}`;
     }
 
-    // Encoder de AudioBuffer a archivo WAV (PCM de 16 Bits)
     function audioBufferToWav(buffer) {
       const numChannels = buffer.numberOfChannels;
       const sampleRate = buffer.sampleRate;
