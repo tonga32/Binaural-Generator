@@ -125,7 +125,7 @@
           </div>
 
         </div>
-        <p class="text-[11px] text-slate-400 mt-2 text-center">Resonancia acoplada: La geometría responde dinámicamente al audio y a los estados cerebrales.</p>
+        <p class="text-[11px] text-slate-400 mt-2 text-center">Acoplamiento directo: La señal sonora del Analizador (DSP) acciona físicamente la arena.</p>
       </div>
 
       <!-- Right Column: Audio & Chladni Controls -->
@@ -279,12 +279,15 @@
     let binauralFreq = 10.0;
     let volume = 0.5;
 
+    // Web Audio Engine Nodes
     let audioCtx = null;
     let oscLeft = null, oscRight = null;
     let panLeft = null, panRight = null;
     let isoGain = null, lfoOsc = null;
     let noiseNode = null, noiseFilter = null;
     let masterGain = null;
+    let analyserNode = null; // Analizador de señal acoplado en tiempo real
+    let audioDataArray = null;
 
     let mediaRecorder = null;
     let audioDestinationNode = null;
@@ -323,19 +326,44 @@
       }
     }
 
-    // --- CORRECCIÓN CLAVE: Acoplar Portadora, Frecuencia Binaural y Modo de Audio a la Geometría ---
-    function computeChladniParamsFromAudio() {
-      const carrierNorm = Math.max(0, Math.min(1, (carrierFreq - 100) / 500));
-      const beatNorm = Math.max(0, Math.min(1, binauralFreq / 50));
-      
-      // Asignar un factor numérico único según el modo acústico actual
+    // --- LECTURA FÍSICA DIRECTA DEL GRAFO DE AUDIO ---
+    function getAudioSignalProperties() {
+      if (!isPlaying || !analyserNode || !audioCtx) {
+        return { activeEnergy: 0, realCarrier: carrierFreq, realBeat: binauralFreq };
+      }
+
+      // 1. Extraer amplitud real de la forma de onda que viaja por el analizador
+      analyserNode.getByteTimeDomainData(audioDataArray);
+      let sumSq = 0;
+      for (let i = 0; i < audioDataArray.length; i++) {
+        let norm = (audioDataArray[i] - 128) / 128.0; // Centrar en 0 (-1 a 1)
+        sumSq += norm * norm;
+      }
+      let rms = Math.sqrt(sumSq / audioDataArray.length); // Valor eficaz de la onda actual
+
+      // 2. Consultar frecuencia activa directo desde la memoria del oscilador activo
+      let realCarrier = carrierFreq;
+      if (oscLeft && oscLeft.frequency) {
+        realCarrier = oscLeft.frequency.value;
+      }
+
+      return {
+        activeEnergy: rms, // Si el sonido se detiene o silencia, rms baja a 0
+        realCarrier: realCarrier,
+        realBeat: binauralFreq
+      };
+    }
+
+    function updateChladniModesFromAudioNode(realCarrier, realBeat) {
+      const carrierNorm = Math.max(0, Math.min(1, (realCarrier - 100) / 500));
+      const beatNorm = Math.max(0, Math.min(1, realBeat / 50));
+
       let modeFactor = 1;
       if (currentMode === 'monaural') modeFactor = 1.25;
       else if (currentMode === 'isochronic') modeFactor = 1.5;
       else if (currentMode === 'pure') modeFactor = 0.75;
       else if (currentMode === 'pink_noise') modeFactor = 1.8;
 
-      // Ahora 'n' y 'm' cambian dinámicamente tanto si mueves la portadora, como si cambias de onda (Delta/Alpha) o de modo acústico
       chladniN = Math.floor(2 + ((carrierNorm * 3 + beatNorm * 2) * modeFactor) % 4);
       chladniM = Math.floor(1 + ((carrierNorm * 2 + beatNorm * 3) * modeFactor) % 4);
 
@@ -361,26 +389,30 @@
     }
 
     function updateParticles(timestamp) {
-      computeChladniParamsFromAudio();
-      if (!isPlaying) return; 
+      // Leer energía real enviada por los osciladores al AnalyserNode
+      const audioState = getAudioSignalProperties();
 
-      let beatModulation = 1.0;
-      if (currentMode === 'binaural' || currentMode === 'monaural' || currentMode === 'isochronic') {
-        let beat = 0.5 + 0.5 * Math.sin((timestamp / 1000) * (binauralFreq * Math.PI * 2));
-        beatModulation = 0.4 + 0.6 * beat;
+      // Si no hay energía sonora activa (silencio/pausa), la arena se detiene en seco
+      if (audioState.activeEnergy <= 0.001) {
+        document.getElementById('modeStatusDisplay').innerText = `Placa en Silencio (Standby)`;
+        document.getElementById('statusDot').className = 'w-2 h-2 rounded-full bg-slate-500';
+        return;
       }
 
-      const pullSpeed = (0.012 + volume * 0.025) * beatModulation;
-      const vibrationIntensity = 0.08 + volume * 0.12;
-      const residualJitter = 0.003 + volume * 0.004; 
+      updateChladniModesFromAudioNode(audioState.realCarrier, audioState.realBeat);
+
+      // La velocidad y fuerza de atracción dependen directamente de la amplitud medida por el analizador
+      const pullSpeed = 0.005 + audioState.activeEnergy * 0.06;
+      const vibrationIntensity = 0.02 + audioState.activeEnergy * 0.25;
+      const residualJitter = 0.002 + audioState.activeEnergy * 0.008;
       const step = 0.003;
 
       for (let i = 0; i < particles.length; i++) {
         let p = particles[i];
 
         if (currentMode === 'white_noise') {
-          p.x += (Math.random() - 0.5) * 0.05;
-          p.y += (Math.random() - 0.5) * 0.05;
+          p.x += (Math.random() - 0.5) * audioState.activeEnergy * 0.1;
+          p.y += (Math.random() - 0.5) * audioState.activeEnergy * 0.1;
         } else {
           let val = chladniValue(p.x, p.y, chladniN, chladniM);
           
@@ -448,7 +480,7 @@
       requestAnimationFrame(animLoop);
     }
 
-    // --- Web Audio Controls ---
+    // --- WEB AUDIO ENGINE CON ANALIZADOR ACOPLADO ---
     function initAudioContext() {
       if (!audioCtx) {
         const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -503,10 +535,17 @@
       stopCurrentNodes();
 
       setTimeout(() => {
+        // Conexión del Grafo de Audio con AnalyserNode
         masterGain = audioCtx.createGain();
         masterGain.gain.setValueAtTime(0, audioCtx.currentTime);
         masterGain.gain.linearRampToValueAtTime(volume, audioCtx.currentTime + 0.05);
-        masterGain.connect(audioCtx.destination);
+
+        analyserNode = audioCtx.createAnalyser();
+        analyserNode.fftSize = 64;
+        audioDataArray = new Uint8Array(analyserNode.frequencyBinCount);
+
+        masterGain.connect(analyserNode);
+        analyserNode.connect(audioCtx.destination);
 
         if (audioDestinationNode) {
           masterGain.connect(audioDestinationNode);
