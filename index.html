@@ -115,8 +115,8 @@
 
             <!-- Overlay Indicators -->
             <div class="absolute top-3 left-3 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 font-mono text-[11px] text-slate-300 flex items-center gap-2">
-              <span class="w-2 h-2 rounded-full accent-bg animate-pulse"></span>
-              <span id="modeStatusDisplay">Modo: Binaural (m:3, n:4)</span>
+              <span id="statusDot" class="w-2 h-2 rounded-full bg-slate-500"></span>
+              <span id="modeStatusDisplay">Placa en Silencio (Standby)</span>
             </div>
 
             <div class="absolute bottom-3 right-3 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 font-mono text-[11px] text-slate-300">
@@ -125,7 +125,7 @@
           </div>
 
         </div>
-        <p class="text-[11px] text-slate-400 mt-2 text-center">Simulación física real: El patrón nodal se forma en el centro de la placa cuadrada.</p>
+        <p class="text-[11px] text-slate-400 mt-2 text-center">Inicia el audio para activar la vibración de la placa y formar las figuras nodales.</p>
       </div>
 
       <!-- Right Column: Audio & Chladni Controls -->
@@ -325,10 +325,8 @@
       }
     }
 
-    // --- CÁLCULO DE MODOS DE CHLADNI CENTRADOS Y ARMÓNICOS ---
     function computeChladniParamsFromAudio() {
       const norm = Math.max(0, Math.min(1, (carrierFreq - 100) / 500));
-      // Mapeo armónico entero limpio para forzar figuras simétricas cerradas
       chladniM = Math.floor(2 + norm * 3.9); 
       chladniN = Math.floor(3 + Math.abs(Math.sin(norm * Math.PI * 3)) * 3.9);
 
@@ -337,13 +335,18 @@
       }
 
       const modeText = currentMode.replace('_', ' ').toUpperCase();
-      document.getElementById('modeStatusDisplay').innerText = `Modo: ${modeText} (m:${chladniM}, n:${chladniN})`;
+      if (isPlaying) {
+        document.getElementById('modeStatusDisplay').innerText = `Activo: ${modeText} (m:${chladniM}, n:${chladniN})`;
+        document.getElementById('statusDot').className = 'w-2 h-2 rounded-full accent-bg animate-pulse';
+      } else {
+        document.getElementById('modeStatusDisplay').innerText = `Placa en Silencio (Standby)`;
+        document.getElementById('statusDot').className = 'w-2 h-2 rounded-full bg-slate-500';
+      }
     }
 
-    // Ecuación de Chladni corregida con dominio normalizado [0, 1] en el centro de la placa
     function chladniValue(x, y, m, n) {
       const pi = Math.PI;
-      const X = (x + 1) * 0.5; // Mapeo estricto al centro de la placa cuadrada
+      const X = (x + 1) * 0.5;
       const Y = (y + 1) * 0.5;
       return Math.sin(m * pi * X) * Math.sin(n * pi * Y) - Math.sin(n * pi * X) * Math.sin(m * pi * Y);
     }
@@ -352,29 +355,42 @@
       computeChladniParamsFromAudio();
       const step = 0.008;
 
-      let beatModulation = 0.1;
-      let vibrationIntensity = 0.0008;
+      let vibrationIntensity = 0;
 
-      if (currentMode === 'binaural' || currentMode === 'monaural') {
-        beatModulation = isPlaying ? 0.5 + 0.5 * Math.sin((timestamp / 1000) * (binauralFreq * Math.PI * 2)) : 0.1;
-        vibrationIntensity = isPlaying ? (0.003 + (volume * 0.012)) * (0.4 + 0.6 * beatModulation) : 0.0005;
-      } else if (currentMode === 'isochronic') {
-        const pulse = Math.sin((timestamp / 1000) * (binauralFreq * Math.PI * 2));
-        beatModulation = isPlaying ? (pulse > 0 ? 1.0 : 0.05) : 0.1;
-        vibrationIntensity = isPlaying ? (0.004 + (volume * 0.015)) * beatModulation : 0.0005;
-      } else if (currentMode === 'pure') {
-        vibrationIntensity = isPlaying ? (0.004 + (volume * 0.012)) : 0.0005;
-      } else if (currentMode === 'white_noise') {
-        vibrationIntensity = isPlaying ? (0.008 + (volume * 0.015)) : 0.0005;
-      } else if (currentMode === 'pink_noise') {
-        const organicPulse = 0.7 + 0.3 * Math.sin(timestamp / 800);
-        vibrationIntensity = isPlaying ? (0.004 * organicPulse + (volume * 0.008)) : 0.0005;
+      // SI EL AUDIO ESTÁ APAGADO, LA VIBRACIÓN ES CERO ABSOLUTO
+      if (isPlaying) {
+        if (currentMode === 'binaural' || currentMode === 'monaural') {
+          let beatModulation = 0.5 + 0.5 * Math.sin((timestamp / 1000) * (binauralFreq * Math.PI * 2));
+          vibrationIntensity = (0.003 + (volume * 0.012)) * (0.4 + 0.6 * beatModulation);
+        } else if (currentMode === 'isochronic') {
+          const pulse = Math.sin((timestamp / 1000) * (binauralFreq * Math.PI * 2));
+          let beatModulation = (pulse > 0 ? 1.0 : 0.05);
+          vibrationIntensity = (0.004 + (volume * 0.015)) * beatModulation;
+        } else if (currentMode === 'pure') {
+          vibrationIntensity = 0.004 + (volume * 0.012);
+        } else if (currentMode === 'white_noise') {
+          vibrationIntensity = 0.008 + (volume * 0.015);
+        } else if (currentMode === 'pink_noise') {
+          const organicPulse = 0.7 + 0.3 * Math.sin(timestamp / 800);
+          vibrationIntensity = (0.004 * organicPulse + (volume * 0.008));
+        }
+      } else {
+        vibrationIntensity = 0; // CERO VIBRACIÓN EN SILENCIO
       }
 
       for (let i = 0; i < particles.length; i++) {
         const p = particles[i];
 
-        if (currentMode === 'white_noise' && isPlaying) {
+        if (!isPlaying) {
+          // Si está en silencio, las partículas pierden inercia y se quedan estáticas
+          p.vx *= 0.8;
+          p.vy *= 0.8;
+          p.x += p.vx;
+          p.y += p.vy;
+          continue;
+        }
+
+        if (currentMode === 'white_noise') {
           p.x += (Math.random() - 0.5) * vibrationIntensity * 5;
           p.y += (Math.random() - 0.5) * vibrationIntensity * 5;
         } else {
@@ -385,9 +401,8 @@
           const gradX = (Math.abs(valX) - Math.abs(val)) / step;
           const gradY = (Math.abs(valY) - Math.abs(val)) / step;
 
-          const jitter = isPlaying ? (Math.random() - 0.5) * vibrationIntensity * 2 : (Math.random() - 0.5) * 0.001;
+          const jitter = (Math.random() - 0.5) * vibrationIntensity * 2;
 
-          // Física con amortiguación (damping) para que la arena frene sobre las líneas nodales
           p.vx = (p.vx - gradX * vibrationIntensity * 15 + jitter) * 0.84;
           p.vy = (p.vy - gradY * vibrationIntensity * 15 + jitter) * 0.84;
 
@@ -395,7 +410,6 @@
           p.y += p.vy;
         }
 
-        // Rebote suave o reseteo si se escapan de la placa
         if (p.x < -0.92 || p.x > 0.92 || p.y < -0.92 || p.y > 0.92) {
           p.x = (Math.random() - 0.5) * 1.5;
           p.y = (Math.random() - 0.5) * 1.5;
