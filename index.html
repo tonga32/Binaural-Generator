@@ -120,12 +120,12 @@
             </div>
 
             <div class="absolute bottom-3 right-3 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 font-mono text-[11px] text-slate-300">
-              <span id="particleCountDisplay">22,000</span> Partículas
+              <span id="particleCountDisplay">25,000</span> Partículas
             </div>
           </div>
 
         </div>
-        <p class="text-[11px] text-slate-400 mt-2 text-center">Inicia el audio para activar la vibración de la placa y formar las figuras nodales.</p>
+        <p class="text-[11px] text-slate-400 mt-2 text-center">Presiona Play para activar la vibración armónica por cosenos.</p>
       </div>
 
       <!-- Right Column: Audio & Chladni Controls -->
@@ -263,7 +263,6 @@
   </div>
 
   <script>
-    // --- Configuración de Presets de Ondas ---
     const PRESETS = {
       delta: { name: 'Delta', subtitle: 'Onda Delta (Sueño Profundo)', minFreq: 0.5, maxFreq: 4.0, defaultFreq: 2.5, themeClass: 'theme-delta', colorHex: '#818cf8' },
       theta: { name: 'Theta', subtitle: 'Onda Theta (Meditación Profunda)', minFreq: 4.0, maxFreq: 8.0, defaultFreq: 6.0, themeClass: 'theme-theta', colorHex: '#34d399' },
@@ -294,11 +293,10 @@
     let recordStartTime = 0;
     let recordTimerInterval = null;
 
-    // Parámetros Cimáticos
-    let chladniM = 3;
-    let chladniN = 5;
+    let chladniN = 3; // Frecuencia horizontal
+    let chladniM = 2; // Frecuencia vertical
 
-    const NUM_PARTICLES = 22000;
+    const NUM_PARTICLES = 25000;
     const particles = [];
 
     const canvas = document.getElementById('chladniCanvas');
@@ -309,9 +307,7 @@
       for (let i = 0; i < NUM_PARTICLES; i++) {
         particles.push({
           x: (Math.random() - 0.5) * 1.8,
-          y: (Math.random() - 0.5) * 1.8,
-          vx: 0,
-          vy: 0
+          y: (Math.random() - 0.5) * 1.8
         });
       }
     }
@@ -320,23 +316,22 @@
       for (let i = 0; i < particles.length; i++) {
         particles[i].x = (Math.random() - 0.5) * 1.8;
         particles[i].y = (Math.random() - 0.5) * 1.8;
-        particles[i].vx = 0;
-        particles[i].vy = 0;
       }
     }
 
+    // Mapeo armónico basado en el script de Python con cosenos
     function computeChladniParamsFromAudio() {
       const norm = Math.max(0, Math.min(1, (carrierFreq - 100) / 500));
-      chladniM = Math.floor(2 + norm * 3.9); 
-      chladniN = Math.floor(3 + Math.abs(Math.sin(norm * Math.PI * 3)) * 3.9);
+      chladniN = Math.floor(2 + norm * 4); // n de 2 a 5
+      chladniM = Math.floor(1 + Math.abs(Math.sin(norm * Math.PI * 2)) * 4); // m de 1 a 4
 
-      if (chladniM === chladniN) {
-        chladniN = chladniM + 1;
+      if (chladniN === chladniM) {
+        chladniM = (chladniN % 4) + 1;
       }
 
       const modeText = currentMode.replace('_', ' ').toUpperCase();
       if (isPlaying) {
-        document.getElementById('modeStatusDisplay').innerText = `Activo: ${modeText} (m:${chladniM}, n:${chladniN})`;
+        document.getElementById('modeStatusDisplay').innerText = `Activo: ${modeText} (n:${chladniN}, m:${chladniM})`;
         document.getElementById('statusDot').className = 'w-2 h-2 rounded-full accent-bg animate-pulse';
       } else {
         document.getElementById('modeStatusDisplay').innerText = `Placa en Silencio (Standby)`;
@@ -344,77 +339,55 @@
       }
     }
 
-    function chladniValue(x, y, m, n) {
+    // Ecuación de Chladni basada en COSENOS exactos (igual al script de Python)
+    function chladniValue(x, y, n, m) {
       const pi = Math.PI;
-      const X = (x + 1) * 0.5;
+      const X = (x + 1) * 0.5; // Normalizado 0 a 1
       const Y = (y + 1) * 0.5;
-      return Math.sin(m * pi * X) * Math.sin(n * pi * Y) - Math.sin(n * pi * X) * Math.sin(m * pi * Y);
+      // Z = cos(n * pi * X) * cos(m * pi * Y) - cos(m * pi * X) * cos(n * pi * Y)
+      return Math.cos(n * pi * X) * Math.cos(m * pi * Y) - Math.cos(m * pi * X) * Math.cos(n * pi * Y);
     }
 
     function updateParticles(timestamp) {
       computeChladniParamsFromAudio();
-      const step = 0.008;
+      if (!isPlaying) return; // Si está en pausa, la arena no se mueve
 
-      let vibrationIntensity = 0;
-
-      // SI EL AUDIO ESTÁ APAGADO, LA VIBRACIÓN ES CERO ABSOLUTO
-      if (isPlaying) {
-        if (currentMode === 'binaural' || currentMode === 'monaural') {
-          let beatModulation = 0.5 + 0.5 * Math.sin((timestamp / 1000) * (binauralFreq * Math.PI * 2));
-          vibrationIntensity = (0.003 + (volume * 0.012)) * (0.4 + 0.6 * beatModulation);
-        } else if (currentMode === 'isochronic') {
-          const pulse = Math.sin((timestamp / 1000) * (binauralFreq * Math.PI * 2));
-          let beatModulation = (pulse > 0 ? 1.0 : 0.05);
-          vibrationIntensity = (0.004 + (volume * 0.015)) * beatModulation;
-        } else if (currentMode === 'pure') {
-          vibrationIntensity = 0.004 + (volume * 0.012);
-        } else if (currentMode === 'white_noise') {
-          vibrationIntensity = 0.008 + (volume * 0.015);
-        } else if (currentMode === 'pink_noise') {
-          const organicPulse = 0.7 + 0.3 * Math.sin(timestamp / 800);
-          vibrationIntensity = (0.004 * organicPulse + (volume * 0.008));
-        }
-      } else {
-        vibrationIntensity = 0; // CERO VIBRACIÓN EN SILENCIO
+      let beatModulation = 1.0;
+      if (currentMode === 'binaural' || currentMode === 'monaural' || currentMode === 'isochronic') {
+        let beat = 0.5 + 0.5 * Math.sin((timestamp / 1000) * (binauralFreq * Math.PI * 2));
+        beatModulation = 0.3 + 0.7 * beat;
       }
 
-      for (let i = 0; i < particles.length; i++) {
-        const p = particles[i];
+      // Velocidad de atracción de la arena hacia las líneas nodales (donde Z es cero)
+      const pullSpeed = (0.015 + volume * 0.03) * beatModulation;
 
-        if (!isPlaying) {
-          // Si está en silencio, las partículas pierden inercia y se quedan estáticas
-          p.vx *= 0.8;
-          p.vy *= 0.8;
-          p.x += p.vx;
-          p.y += p.vy;
-          continue;
-        }
+      for (let i = 0; i < particles.length; i++) {
+        let p = particles[i];
 
         if (currentMode === 'white_noise') {
-          p.x += (Math.random() - 0.5) * vibrationIntensity * 5;
-          p.y += (Math.random() - 0.5) * vibrationIntensity * 5;
+          p.x += (Math.random() - 0.5) * 0.05;
+          p.y += (Math.random() - 0.5) * 0.05;
         } else {
-          const val = chladniValue(p.x, p.y, chladniM, chladniN);
-          const valX = chladniValue(p.x + step, p.y, chladniM, chladniN);
-          const valY = chladniValue(p.x, p.y + step, chladniM, chladniN);
+          // Evaluamos el campo de Chladni
+          let val = chladniValue(p.x, p.y, chladniN, chladniM);
+          
+          // Las partículas son atraídas directamente hacia las líneas nodales (donde el valor absoluto tiende a 0)
+          let delta = 0.001;
+          let valX = chladniValue(p.x + delta, p.y, chladniN, chladniM);
+          let valY = chladniValue(p.x, p.y + delta, chladniN, chladniM);
 
-          const gradX = (Math.abs(valX) - Math.abs(val)) / step;
-          const gradY = (Math.abs(valY) - Math.abs(val)) / step;
+          let gradX = (Math.abs(valX) - Math.abs(val)) / delta;
+          let gradY = (Math.abs(valY) - Math.abs(val)) / delta;
 
-          const jitter = (Math.random() - 0.5) * vibrationIntensity * 2;
-
-          p.vx = (p.vx - gradX * vibrationIntensity * 15 + jitter) * 0.84;
-          p.vy = (p.vy - gradY * vibrationIntensity * 15 + jitter) * 0.84;
-
-          p.x += p.vx;
-          p.y += p.vy;
+          // Movimiento guiado por el gradiente hacia el nodo + agitación aleatoria de la vibración
+          p.x += -gradX * pullSpeed + (Math.random() - 0.5) * pullSpeed * 0.8;
+          p.y += -gradY * pullSpeed + (Math.random() - 0.5) * pullSpeed * 0.8;
         }
 
+        // Si una partícula se sale de los bordes, reaparece al azar dentro de la placa
         if (p.x < -0.92 || p.x > 0.92 || p.y < -0.92 || p.y > 0.92) {
-          p.x = (Math.random() - 0.5) * 1.5;
-          p.y = (Math.random() - 0.5) * 1.5;
-          p.vx = 0; 
-          p.vy = 0;
+          p.x = (Math.random() - 0.5) * 1.6;
+          p.y = (Math.random() - 0.5) * 1.6;
         }
       }
     }
@@ -439,8 +412,8 @@
 
       for (let i = 0; i < particles.length; i++) {
         const p = particles[i];
-        const px = halfW + p.x * (halfW * 0.88);
-        const py = halfH + p.y * (halfH * 0.88);
+        const px = halfW + p.x * (halfW * 0.85);
+        const py = halfH + p.y * (halfH * 0.85);
 
         ctx.fillRect(px, py, 1.4, 1.4);
       }
@@ -614,7 +587,7 @@
       }, 40);
     }
 
-    // --- Sistema de Grabación y Encoder WAV ---
+    // --- Grabación WAV ---
     function toggleRecording() {
       if (isRecording) {
         stopRecording();
