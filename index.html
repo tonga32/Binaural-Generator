@@ -116,7 +116,7 @@
             <!-- Overlay Indicators -->
             <div class="absolute top-3 left-3 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 font-mono text-[11px] text-slate-300 flex items-center gap-2">
               <span class="w-2 h-2 rounded-full accent-bg animate-pulse"></span>
-              <span id="modeStatusDisplay">Modo: Binaural (m:3.2, n:4.1)</span>
+              <span id="modeStatusDisplay">Modo: Binaural (m:3.0, n:5.0)</span>
             </div>
 
             <div class="absolute bottom-3 right-3 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 font-mono text-[11px] text-slate-300">
@@ -299,7 +299,7 @@
 
     // Parámetros Cimáticos
     let chladniM = 3;
-    let chladniN = 4;
+    let chladniN = 5;
     let aParam = 1.0;
     let bParam = 1.0;
 
@@ -330,9 +330,19 @@
       }
     }
 
+    // --- CÁLCULO MEJORADO DE MODOS ARMÓNICOS DE CHLADNI ---
     function computeChladniParamsFromAudio() {
-      chladniM = 1.5 + (carrierFreq / 85.0);
-      chladniN = 2.0 + (carrierFreq / 110.0);
+      // Normalizamos la frecuencia entre 100 Hz y 600 Hz
+      const norm = Math.max(0, Math.min(1, (carrierFreq - 100) / 500));
+      
+      // Mapeamos a modos armónicos enteros/discretos para garantizar geometrías cerradas
+      chladniM = Math.floor(2 + norm * 4); // M varía de 2 a 6
+      chladniN = Math.floor(3 + Math.abs(Math.sin(norm * Math.PI * 2)) * 4); // N varía alternando
+
+      // Garantizamos que m y n nunca sean iguales para evitar el colapso diagonal
+      if (chladniM === chladniN) {
+        chladniN = chladniM + 1;
+      }
 
       const modeText = currentMode.replace('_', ' ').toUpperCase();
       document.getElementById('modeStatusDisplay').innerText = `Modo: ${modeText} (m:${chladniM.toFixed(1)}, n:${chladniN.toFixed(1)})`;
