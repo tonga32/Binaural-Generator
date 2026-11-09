@@ -293,8 +293,8 @@
     let recordStartTime = 0;
     let recordTimerInterval = null;
 
-    let chladniN = 3; // Frecuencia horizontal
-    let chladniM = 2; // Frecuencia vertical
+    let chladniN = 3; 
+    let chladniM = 2; 
 
     const NUM_PARTICLES = 25000;
     const particles = [];
@@ -307,7 +307,9 @@
       for (let i = 0; i < NUM_PARTICLES; i++) {
         particles.push({
           x: (Math.random() - 0.5) * 1.8,
-          y: (Math.random() - 0.5) * 1.8
+          y: (Math.random() - 0.5) * 1.8,
+          vx: 0,
+          vy: 0
         });
       }
     }
@@ -316,14 +318,15 @@
       for (let i = 0; i < particles.length; i++) {
         particles[i].x = (Math.random() - 0.5) * 1.8;
         particles[i].y = (Math.random() - 0.5) * 1.8;
+        particles[i].vx = 0;
+        particles[i].vy = 0;
       }
     }
 
-    // Mapeo armónico basado en el script de Python con cosenos
     function computeChladniParamsFromAudio() {
       const norm = Math.max(0, Math.min(1, (carrierFreq - 100) / 500));
-      chladniN = Math.floor(2 + norm * 4); // n de 2 a 5
-      chladniM = Math.floor(1 + Math.abs(Math.sin(norm * Math.PI * 2)) * 4); // m de 1 a 4
+      chladniN = Math.floor(2 + norm * 4); 
+      chladniM = Math.floor(1 + Math.abs(Math.sin(norm * Math.PI * 2)) * 4); 
 
       if (chladniN === chladniM) {
         chladniM = (chladniN % 4) + 1;
@@ -339,27 +342,26 @@
       }
     }
 
-    // Ecuación de Chladni basada en COSENOS exactos (igual al script de Python)
     function chladniValue(x, y, n, m) {
       const pi = Math.PI;
-      const X = (x + 1) * 0.5; // Normalizado 0 a 1
+      const X = (x + 1) * 0.5; 
       const Y = (y + 1) * 0.5;
-      // Z = cos(n * pi * X) * cos(m * pi * Y) - cos(m * pi * X) * cos(n * pi * Y)
       return Math.cos(n * pi * X) * Math.cos(m * pi * Y) - Math.cos(m * pi * X) * Math.cos(n * pi * Y);
     }
 
     function updateParticles(timestamp) {
       computeChladniParamsFromAudio();
-      if (!isPlaying) return; // Si está en pausa, la arena no se mueve
+      if (!isPlaying) return; 
 
       let beatModulation = 1.0;
       if (currentMode === 'binaural' || currentMode === 'monaural' || currentMode === 'isochronic') {
         let beat = 0.5 + 0.5 * Math.sin((timestamp / 1000) * (binauralFreq * Math.PI * 2));
-        beatModulation = 0.3 + 0.7 * beat;
+        beatModulation = 0.4 + 0.6 * beat;
       }
 
-      // Velocidad de atracción de la arena hacia las líneas nodales (donde Z es cero)
-      const pullSpeed = (0.015 + volume * 0.03) * beatModulation;
+      const pullSpeed = (0.015 + volume * 0.035) * beatModulation;
+      const vibrationIntensity = 0.06 + volume * 0.1;
+      const step = 0.002;
 
       for (let i = 0; i < particles.length; i++) {
         let p = particles[i];
@@ -368,26 +370,35 @@
           p.x += (Math.random() - 0.5) * 0.05;
           p.y += (Math.random() - 0.5) * 0.05;
         } else {
-          // Evaluamos el campo de Chladni
           let val = chladniValue(p.x, p.y, chladniN, chladniM);
           
-          // Las partículas son atraídas directamente hacia las líneas nodales (donde el valor absoluto tiende a 0)
-          let delta = 0.001;
-          let valX = chladniValue(p.x + delta, p.y, chladniN, chladniM);
-          let valY = chladniValue(p.x, p.y + delta, chladniN, chladniM);
+          let valX = chladniValue(p.x + step, p.y, chladniN, chladniM);
+          let valY = chladniValue(p.x, p.y + step, chladniN, chladniM);
 
-          let gradX = (Math.abs(valX) - Math.abs(val)) / delta;
-          let gradY = (Math.abs(valY) - Math.abs(val)) / delta;
+          let dValX = (valX - val) / step;
+          let dValY = (valY - val) / step;
 
-          // Movimiento guiado por el gradiente hacia el nodo + agitación aleatoria de la vibración
-          p.x += -gradX * pullSpeed + (Math.random() - 0.5) * pullSpeed * 0.8;
-          p.y += -gradY * pullSpeed + (Math.random() - 0.5) * pullSpeed * 0.8;
+          // Fuerza potencial suave hacia el nodo (val = 0) sin colapsar en grumos
+          let forceX = -val * dValX;
+          let forceY = -val * dValY;
+
+          // Agitación proporcional a la energía local (en antinodos bailan, en nodos se quedan quietos)
+          let localEnergy = Math.abs(val);
+          let jitterX = (Math.random() - 0.5) * localEnergy * vibrationIntensity;
+          let jitterY = (Math.random() - 0.5) * localEnergy * vibrationIntensity;
+
+          p.vx = (p.vx + forceX * pullSpeed + jitterX) * 0.82;
+          p.vy = (p.vy + forceY * pullSpeed + jitterY) * 0.82;
+
+          p.x += p.vx;
+          p.y += p.vy;
         }
 
-        // Si una partícula se sale de los bordes, reaparece al azar dentro de la placa
         if (p.x < -0.92 || p.x > 0.92 || p.y < -0.92 || p.y > 0.92) {
           p.x = (Math.random() - 0.5) * 1.6;
           p.y = (Math.random() - 0.5) * 1.6;
+          p.vx = 0;
+          p.vy = 0;
         }
       }
     }
